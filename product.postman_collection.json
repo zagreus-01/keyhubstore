@@ -1,0 +1,170 @@
+{
+  "info": {
+    "_postman_id": "product-module",
+    "name": "Product - Brand - Category API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "CATEGORY",
+      "item": [
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/category",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "category"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Phone\",\n  \"slug\": \"phone\",\n  \"description\": \"Smart phone category\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/category",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "category"]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "BRAND",
+      "item": [
+        {
+          "name": "Create Brand",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/brand",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "brand"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Apple\",\n  \"slug\": \"apple\",\n  \"description\": \"Apple Inc\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Brands",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/brand",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "brand"]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "PRODUCT",
+      "item": [
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/product",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "product"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"iPhone 15\",\n  \"slug\": \"iphone-15\",\n  \"description\": \"Apple flagship phone\",\n  \"categoryId\": \"REPLACE_CATEGORY_ID\",\n  \"brandId\": \"REPLACE_BRAND_ID\",\n  \"thumbnail\": \"https://img.com/iphone.jpg\",\n  \"variants\": [\n    {\n      \"sku\": \"IP15-BLACK\",\n      \"price\": 2000,\n      \"stock\": 10,\n      \"images\": [\"https://img.com/a.jpg\"],\n      \"attributes\": [\n        { \"key\": \"color\", \"value\": \"black\" },\n        { \"key\": \"storage\", \"value\": \"128GB\" }\n      ]\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/product",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "product"]
+            }
+          }
+        },
+        {
+          "name": "Get Product Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/product/:id",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "product", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/product/:id",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "product", ":id"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Updated Product Name\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/product/:id",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "product", ":id"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
