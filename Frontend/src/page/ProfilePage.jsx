@@ -13,7 +13,9 @@ export default function ProfilePage() {
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [form] = Form.useForm();
+  const [changePasswordForm] = Form.useForm();
   const [addressForm] = Form.useForm();
   const { refreshProfile } = useAuth();
 
@@ -102,6 +104,19 @@ export default function ProfilePage() {
     }
   };
 
+  const changePassword = async (values) => {
+    try {
+      await api.put("/user/change-password", {
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword,
+      });
+      changePasswordForm.resetFields();
+      notification.success({ title: "Password updated" });
+    } catch (error) {
+      notification.error({ title: getErrorMessage(error) });
+    }
+  };
+
   const setDefaultAddress = async (addressId) => {
     try {
       const response = await api.put(`/user/address/default/${addressId}`);
@@ -116,7 +131,15 @@ export default function ProfilePage() {
     <div className="page-profile">
       <Title>My profile</Title>
       <Space orientation="vertical" style={{ width: "100%" }} size="large">
-        <Card loading={loading} title="Account details">
+        <Card
+          loading={loading}
+          title="Account details"
+          extra={
+            <Button type="link" onClick={() => setShowChangePassword((prev) => !prev)}>
+              {showChangePassword ? "Hide change password" : "Change password"}
+            </Button>
+          }
+        >
           {profile && (
             <Form form={form} layout="vertical" onFinish={handleProfileSubmit} initialValues={{ fullName: profile.fullName, email: profile.email, phone: profile.phone }}>
               <Form.Item label="Avatar">
@@ -145,6 +168,38 @@ export default function ProfilePage() {
             </Form>
           )}
         </Card>
+
+        {showChangePassword && (
+          <Card title="Change password">
+            <Form form={changePasswordForm} layout="vertical" onFinish={changePassword}>
+              <Form.Item name="oldPassword" label="Current password" rules={[{ required: true, message: "Enter your current password" }]}> 
+                <Input.Password />
+              </Form.Item>
+              <Form.Item name="newPassword" label="New password" rules={[{ required: true, message: "Enter a new password" }, { min: 6, message: "Password must be at least 6 characters" }]}> 
+                <Input.Password />
+              </Form.Item>
+              <Form.Item
+                name="confirmPassword"
+                label="Confirm new password"
+                dependencies={["newPassword"]}
+                rules={[
+                  { required: true, message: "Confirm your new password" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("newPassword") === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error("Passwords do not match"));
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password />
+              </Form.Item>
+              <Button type="primary" htmlType="submit">Save new password</Button>
+            </Form>
+          </Card>
+        )}
 
         <Card title="My addresses" extra={<Button icon={<PlusOutlined />} onClick={() => setAddressModalVisible(true)}>Add address</Button>}>
           <List

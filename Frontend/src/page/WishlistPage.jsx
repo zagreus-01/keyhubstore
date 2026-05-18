@@ -1,18 +1,43 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, Col, Empty, notification, Row, Space, Typography } from "antd";
+import { Alert, Button, Card, Col, Empty, notification, Row, Space, Typography } from "antd";
 import { HeartFilled, ShoppingCartOutlined } from "@ant-design/icons";
 import api, { getBackendUrl, getErrorMessage } from "../util/api";
+import { useAuth } from "../components/context/AuthContext";
 
 const { Title, Paragraph, Text } = Typography;
 
 export default function WishlistPage() {
+  const { user } = useAuth();
+  const normalizedRole = String(user?.role || "").toLowerCase();
+  const isCustomer = normalizedRole === "customer";
   const [wishlist, setWishlist] = useState({ products: [] });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  if (!isCustomer) {
+    return (
+      <div className="page-wishlist">
+        <Title>My wishlist</Title>
+        <Card>
+          <Alert
+            message="Wishlist is only available for customers"
+            description="Admin and staff users can view products and manage orders from the dashboard. Wishlist functionality is reserved for customer accounts."
+            type="info"
+            showIcon
+          />
+        </Card>
+      </div>
+    );
+  }
+
   useEffect(() => {
     const fetchWishlist = async () => {
+      if (!isCustomer) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const response = await api.get("/wishlist");
@@ -24,7 +49,7 @@ export default function WishlistPage() {
       }
     };
     fetchWishlist();
-  }, []);
+  }, [isCustomer]);
 
   const removeFavorite = async (productId) => {
     try {

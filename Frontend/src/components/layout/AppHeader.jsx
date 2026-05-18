@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Badge, Button, Input, Layout, Menu, Space, Typography, Avatar, Dropdown } from "antd";
-import { DashboardOutlined, ShoppingCartOutlined, HeartOutlined, ShopOutlined, HomeOutlined, TeamOutlined } from "@ant-design/icons";
+import { Badge, Button, Input, Layout, Menu, Space, Avatar, Dropdown } from "antd";
+import { DashboardOutlined, ShoppingCartOutlined, HeartOutlined, ShopOutlined, HomeOutlined } from "@ant-design/icons";
 import api from "../../util/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -17,8 +17,6 @@ function AppHeader() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [cartCount, setCartCount] = useState(0);
-
-  const normalizedRole = String(user?.role || "").toLowerCase();
 
   useEffect(() => {
     if (!user) {
@@ -36,45 +34,8 @@ function AppHeader() {
     };
     fetchCart();
   }, [location.pathname, user]);
-  const roleItems = [];
-  if (normalizedRole === "staff" || normalizedRole === "admin") {
-    roleItems.push({
-      key: "dashboard",
-      label: "Dashboard",
-      path: "/admin/dashboard",
-      icon: <DashboardOutlined />
-    });
-    roleItems.push({
-      key: "admin-orders",
-      label: "Orders",
-      path: "/admin/orders",
-      icon: <ShoppingCartOutlined />
-    });
-  }
-  if (normalizedRole === "admin") {
-    roleItems.push(
-      {
-        key: "admin-products",
-        label: "Products",
-        path: "/admin/products",
-        icon: <ShopOutlined />
-      },
-      {
-        key: "admin-categories",
-        label: "Categories",
-        path: "/admin/categories",
-        icon: <TeamOutlined />
-      },
-      {
-        key: "users",
-        label: "Users",
-        path: "/admin/users",
-        icon: <TeamOutlined />
-      }
-    );
-  }
 
-  const items = [...navItems, ...roleItems].map((item) => ({
+  const items = navItems.map((item) => ({
     key: item.key,
     label: item.label,
     icon: item.icon,
@@ -82,11 +43,6 @@ function AppHeader() {
   }));
 
   const selectedKey = () => {
-    if (location.pathname.startsWith("/admin/dashboard")) return "dashboard";
-    if (location.pathname.startsWith("/admin/orders")) return "admin-orders";
-    if (location.pathname.startsWith("/admin/products")) return "admin-products";
-    if (location.pathname.startsWith("/admin/categories")) return "admin-categories";
-    if (location.pathname.startsWith("/admin/users")) return "users";
     if (location.pathname === "/") return "home";
     if (location.pathname.startsWith("/products")) return "products";
     return "";
@@ -125,7 +81,7 @@ function AppHeader() {
             placeholder="Search products"
             allowClear
             onSearch={(value) => navigate(`/products?keyword=${encodeURIComponent(value)}`)}
-            style={{ width: 250 }}
+            style={{ width: 220, minWidth: 180 }}
           />
           {isCustomer && (
             <>
@@ -134,6 +90,16 @@ function AppHeader() {
               </Badge>
               <Button type="text" icon={<HeartOutlined />} onClick={() => navigate("/wishlist")} />
             </>
+          )}
+          {user && (normalizedRole === "staff" || normalizedRole === "admin") && (
+            <Button
+              type="default"
+              shape="round"
+              icon={<DashboardOutlined />}
+              onClick={() => navigate("/admin/dashboard")}
+            >
+              Dashboard
+            </Button>
           )}
           {user ? (
             <Dropdown menu={{ items: userMenu }} trigger={["click"]}>

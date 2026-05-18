@@ -233,12 +233,14 @@ export default function AdminProductPage() {
         price: Number(variant.price),
         stock: Number(variant.stock) || 0,
         images: getVariantImagePaths(index),
-        attributes: variant.attributes
-          ? variant.attributes.split(",").map((item) => {
-              const [key, value] = item.split(":").map((valuePart) => valuePart.trim());
-              return key && value ? { key, value } : null;
-            }).filter(Boolean)
-          : []
+        attributes: Array.isArray(variant.attributes)
+          ? variant.attributes
+          : variant.attributes
+            ? variant.attributes.split(",").map((item) => {
+                const [key, value] = item.split(":").map((valuePart) => valuePart.trim());
+                return key && value ? { key, value } : null;
+              }).filter(Boolean)
+            : []
       })) || [];
 
       const payload = {

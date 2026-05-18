@@ -2,10 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button, Card, Divider, Form, Input, List, Radio, Select, Space, Typography, notification } from "antd";
 import api, { getErrorMessage } from "../util/api";
+import { useAuth } from "../components/context/AuthContext";
 
 const { Title, Text } = Typography;
 
 export default function CheckoutPage() {
+  const { user } = useAuth();
+  const normalizedRole = String(user?.role || "").toLowerCase();
+  const isCustomer = normalizedRole === "customer";
   const [cart, setCart] = useState({ items: [], totalPrice: 0 });
   const [addresses, setAddresses] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("COD");
@@ -18,6 +22,9 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!isCustomer) {
+        return;
+      }
       try {
         const [cartRes, addressRes] = await Promise.all([api.get("/cart"), api.get("/user/address")]);
         setCart(cartRes.data.data);
@@ -30,7 +37,23 @@ export default function CheckoutPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [isCustomer]);
+
+  if (!isCustomer) {
+    return (
+      <div className="page-checkout">
+        <Title>Checkout</Title>
+        <Card>
+          <Alert
+            message="Checkout is only available for customers"
+            description="Please use a customer account when placing an order. Admin and staff users can manage orders from the admin dashboard."
+            type="info"
+            showIcon
+          />
+        </Card>
+      </div>
+    );
+  }
 
   const selectedAddress = useMemo(
     () => addresses.find((item) => item._id === selectedAddressId) || null,

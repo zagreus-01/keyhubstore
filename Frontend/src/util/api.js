@@ -51,7 +51,10 @@ export function getErrorMessage(error) {
 export function getBackendUrl(filePath) {
   if (!filePath) return null;
   if (filePath.startsWith("http")) return filePath;
-  return `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/${filePath}`;
+
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+  const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`;
+  return `${backendUrl}${normalizedPath}`;
 }
 
 export default api;

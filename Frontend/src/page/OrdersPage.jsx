@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Descriptions, Divider, Empty, List, notification, Tag, Typography } from "antd";
+import { Button, Card, Descriptions, Divider, Empty, List, notification, Tag, Typography, Alert } from "antd";
 import { useNavigate } from "react-router-dom";
 import api, { getErrorMessage } from "../util/api";
+import { useAuth } from "../components/context/AuthContext";
 
 const { Title, Text } = Typography;
 
@@ -14,12 +15,19 @@ const statusColor = {
 };
 
 export default function OrdersPage() {
+  const { user } = useAuth();
+  const normalizedRole = String(user?.role || "").toLowerCase();
+  const isCustomer = normalizedRole === "customer";
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchOrders = async () => {
+      if (!isCustomer) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         const response = await api.get("/order/my-orders");
@@ -31,7 +39,24 @@ export default function OrdersPage() {
       }
     };
     fetchOrders();
-  }, []);
+  }, [isCustomer]);
+
+  if (!isCustomer) {
+    return (
+      <div className="page-orders">
+        <Title>My orders</Title>
+        <Card>
+          <Alert
+            message="Order history is only available for customers"
+            description="If you are a staff or admin user, please use the admin orders dashboard to manage orders."
+            type="info"
+            showIcon
+          />
+          <Button type="primary" style={{ marginTop: 16 }} onClick={() => navigate("/admin/orders")}>Go to admin orders</Button>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="page-loading">Loading orders...</div>;

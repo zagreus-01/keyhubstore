@@ -19,6 +19,7 @@ import AdminDashboardPage from "./page/AdminDashboardPage";
 import AdminOrdersPage from "./page/AdminOrdersPage";
 import AdminProductPage from "./page/AdminProductPage";
 import AdminCategoryPage from "./page/AdminCategoryPage";
+import AdminBrandPage from "./page/AdminBrandPage";
 import UserManagementPage from "./page/UserManagementPage";
 import NotFoundPage from "./page/NotFoundPage";
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -49,6 +50,7 @@ function App() {
               <Route path="/admin/orders" element={<ProtectedRoute roles={["staff", "admin"]}><AdminOrdersPage /></ProtectedRoute>} />
               <Route path="/admin/products" element={<ProtectedRoute roles={["admin"]}><AdminProductPage /></ProtectedRoute>} />
               <Route path="/admin/categories" element={<ProtectedRoute roles={["admin"]}><AdminCategoryPage /></ProtectedRoute>} />
+              <Route path="/admin/brands" element={<ProtectedRoute roles={["admin"]}><AdminBrandPage /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute roles={["admin"]}><UserManagementPage /></ProtectedRoute>} />
               <Route path="/login" element={<GuestGuard><LoginPage /></GuestGuard>} />
               <Route path="/register" element={<GuestGuard><RegisterPage /></GuestGuard>} />

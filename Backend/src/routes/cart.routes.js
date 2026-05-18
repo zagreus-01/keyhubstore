@@ -29,7 +29,6 @@ router.post(
 router.get(
     "/",
     verifyToken,
-    checkRole("customer"),
     getCart
 );
 

@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Breadcrumb, Button, Card, Col, Image, InputNumber, notification, Row, Select, Space, Tag, Typography } from "antd";
 import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 import api, { getBackendUrl, getErrorMessage } from "../util/api";
 import { useAuth } from "../components/context/AuthContext";
 
@@ -13,7 +18,8 @@ export default function ProductDetailPage() {
   const { isAuthenticated, user } = useAuth();
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [, setSelectedImage] = useState(null);
+  const [mainSwiper, setMainSwiper] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
 
@@ -35,12 +41,26 @@ export default function ProductDetailPage() {
 
   const productImageUrls = useMemo(() => {
     if (!product) return [];
-    const images = [
-      ...(selectedVariant?.images || []),
-      ...(product?.images || []),
-      product?.thumbnail ? [product.thumbnail] : []
-    ].flat();
-    const uniqueImages = Array.from(new Set(images));
+    const productImages = (product.images || []).filter(Boolean);
+    const allVariantImages = product.variants?.flatMap((variant) => (variant.images || []).filter(Boolean)) || [];
+    const images = [...productImages, ...allVariantImages];
+    if (!images.length && product.thumbnail) {
+      images.push(product.thumbnail);
+    }
+    const uniqueImages = Array.from(new Set(images.filter(Boolean)));
+    return uniqueImages.map((image) => (image.startsWith("http") ? image : getBackendUrl(image)));
+  }, [product]);
+
+  const selectedVariantImageUrls = useMemo(() => {
+    if (!product || !selectedVariant) return [];
+    const variantImages = (selectedVariant.images || []).filter(Boolean);
+    if (!variantImages.length) {
+      variantImages.push(...(product.images || []).filter(Boolean));
+    }
+    if (!variantImages.length && product.thumbnail) {
+      variantImages.push(product.thumbnail);
+    }
+    const uniqueImages = Array.from(new Set(variantImages.filter(Boolean)));
     return uniqueImages.map((image) => (image.startsWith("http") ? image : getBackendUrl(image)));
   }, [product, selectedVariant]);
 
@@ -50,9 +70,19 @@ export default function ProductDetailPage() {
     }
   }, [productImageUrls]);
 
+  useEffect(() => {
+    if (!mainSwiper || !selectedVariant || !productImageUrls.length) return;
+    const targetUrl = selectedVariantImageUrls[0] || productImageUrls[0];
+    const targetIndex = productImageUrls.indexOf(targetUrl);
+    if (targetIndex >= 0 && targetIndex !== mainSwiper.activeIndex) {
+      mainSwiper.slideTo(targetIndex);
+      setSelectedImage(productImageUrls[targetIndex]);
+    }
+  }, [selectedVariant, mainSwiper, productImageUrls, selectedVariantImageUrls]);
+
   const variantOptions = useMemo(
     () => product?.variants?.map((variant) => ({
-      label: variant.sku || variant.attributes?.map((attr) => attr.value).join(" / ") || "Variant",
+      label: variant.sku || variant.attributes?.map((attr) => `${attr.key}:${attr.value}`).join(" / ") || "Attributes",
       value: variant._id
     })) || [],
     [product]
@@ -107,16 +137,39 @@ export default function ProductDetailPage() {
     return <div className="page-empty">Product not found.</div>;
   }
 
-  const imageUrl = selectedImage || "https://via.placeholder.com/520x360?text=Product";
-
   return (
     <div className="page-product-detail">
       <Breadcrumb items={[{ title: "Home", onClick: () => navigate("/") }, { title: "Products", onClick: () => navigate("/products") }, { title: product.productName }]} />
 
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={10}>
-          <Card variant="borderless" className="product-detail-card">
-            <Image src={imageUrl} alt={product.productName} preview={false} className="product-detail-image" />
+          <Card bordered={false} className="product-detail-card">
+            <div className="product-detail-swiper-wrapper">
+              {productImageUrls.length ? (
+                <>
+                  <Swiper
+                    modules={[Navigation, Pagination]}
+                    navigation
+                    pagination={{ clickable: true }}
+                    onSwiper={setMainSwiper}
+                    onSlideChange={(swiper) => setSelectedImage(productImageUrls[swiper.activeIndex])}
+                    className="product-detail-swiper"
+                  >
+                    {productImageUrls.map((url, index) => (
+                      <SwiperSlide key={`${url}-${index}`}>
+                        <div className="product-detail-image-wrapper">
+                          <Image src={url} alt={`${product.productName} ${index + 1}`} preview={false} className="product-detail-image" />
+                        </div>
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                </>
+              ) : (
+                <div className="product-detail-image-wrapper">
+                  <Image src="https://via.placeholder.com/520x360?text=Product" alt="No product image" preview={false} className="product-detail-image" />
+                </div>
+              )}
+            </div>
           </Card>
         </Col>
         <Col xs={24} lg={14}>
@@ -126,7 +179,7 @@ export default function ProductDetailPage() {
             <Title level={3}>{Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(activeVariant?.price || product.price || 0)}</Title>
             <Space wrap orientation="vertical" size="middle">
               <div>
-                <Text strong>Variant</Text>
+                <Text strong>Attributes</Text>
                 <Select
                   style={{ width: "100%", marginTop: 8 }}
                   value={activeVariant?._id}
@@ -155,7 +208,7 @@ export default function ProductDetailPage() {
                 <Text strong>Description</Text>
                 <Paragraph>{product.description || "No description available."}</Paragraph>
                 <div className="product-tags">
-                  {product.attributes?.map((attr) => (
+                  {(activeVariant?.attributes || product.attributes || []).map((attr) => (
                     <Tag key={`${attr.key}-${attr.value}`}>{`${attr.key}: ${attr.value}`}</Tag>
                   ))}
                 </div>

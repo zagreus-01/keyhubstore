@@ -1,18 +1,43 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, Col, Divider, InputNumber, notification, Row, Space, Table, Typography } from "antd";
+import { Alert, Button, Card, Col, Divider, InputNumber, notification, Row, Space, Table, Typography } from "antd";
 import { DeleteOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import api, { getErrorMessage } from "../util/api";
+import { useAuth } from "../components/context/AuthContext";
 
 const { Title, Text } = Typography;
 
 export default function CartPage() {
+  const { user } = useAuth();
+  const normalizedRole = String(user?.role || "").toLowerCase();
+  const isCustomer = normalizedRole === "customer";
   const [cart, setCart] = useState({ items: [], totalPrice: 0 });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  if (!isCustomer) {
+    return (
+      <div className="page-cart">
+        <Title>Shopping cart</Title>
+        <Card>
+          <Alert
+            message="Cart is only available for customers"
+            description="As an admin or staff user, you can manage orders from the admin dashboard. Browse products freely, but checkout is reserved for customers."
+            type="info"
+            showIcon
+          />
+        </Card>
+      </div>
+    );
+  }
+
   useEffect(() => {
     const fetchCart = async () => {
+      if (!isCustomer) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const response = await api.get("/cart");
@@ -24,7 +49,7 @@ export default function CartPage() {
       }
     };
     fetchCart();
-  }, []);
+  }, [isCustomer]);
 
   const updateQuantity = async (variantId, quantity) => {
     try {
