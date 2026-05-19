@@ -16,6 +16,22 @@ const getAllCoupons = async (req, res) => {
     }
 };
 
+const getActiveCoupons = async (req, res) => {
+    try {
+        const data = await couponService.getActiveCoupons();
+
+        return res.status(200).json({
+            success: true,
+            data
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 const getCouponById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -136,6 +152,7 @@ const removeCoupon = async (req, res) => {
 
 module.exports = {
     getAllCoupons,
+    getActiveCoupons,
     getCouponById,
     validateCoupon,
     createCoupon,

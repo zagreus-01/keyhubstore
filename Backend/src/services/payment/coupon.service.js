@@ -4,6 +4,16 @@ const getAllCoupons = async () => {
     return Coupon.find().sort({ createdAt: -1 });
 };
 
+const getActiveCoupons = async () => {
+    const now = new Date();
+    return Coupon.find({
+        $and: [
+            { $or: [{ startAt: { $exists: false } }, { startAt: null }, { startAt: { $lte: now } }] },
+            { $or: [{ expiredAt: { $exists: false } }, { expiredAt: null }, { expiredAt: { $gte: now } }] }
+        ]
+    }).sort({ createdAt: -1 });
+};
+
 const getCouponById = async (id) => {
     return Coupon.findById(id);
 };
@@ -94,6 +104,7 @@ const removeCoupon = async (id) => {
 
 module.exports = {
     getAllCoupons,
+    getActiveCoupons,
     getCouponById,
     validateCoupon,
     createCoupon,

@@ -5,6 +5,7 @@ const checkRole = require("../middleware/checkRole.middleware");
 
 const {
     getAllCoupons,
+    getActiveCoupons,
     getCouponById,
     validateCoupon,
     createCoupon,
@@ -17,6 +18,12 @@ router.get(
     verifyToken,
     checkRole("admin"),
     getAllCoupons
+);
+
+router.get(
+    "/active",
+    verifyToken,
+    getActiveCoupons
 );
 
 router.get(

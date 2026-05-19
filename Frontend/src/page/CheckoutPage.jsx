@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Button, Card, Divider, Form, Input, List, Radio, Select, Space, Typography, notification } from "antd";
+import { Alert, Button, Card, Divider, Form, Input, List, Radio, Select, Space, Typography, notification, Modal, Tag } from "antd";
 import api, { getErrorMessage } from "../util/api";
 import { useAuth } from "../components/context/AuthContext";
 
@@ -24,18 +24,26 @@ export default function CheckoutPage() {
   const [addressForm] = Form.useForm();
   const navigate = useNavigate();
 
+  const [activeCoupons, setActiveCoupons] = useState([]);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!isCustomer) {
         return;
       }
       try {
-        const [cartRes, addressRes] = await Promise.all([api.get("/cart"), api.get("/user/address")]);
+        const [cartRes, addressRes, couponsRes] = await Promise.all([
+          api.get("/cart"), 
+          api.get("/user/address"),
+          api.get("/coupon/active")
+        ]);
         setCart(cartRes.data.data);
         setAddresses(addressRes.data.data || []);
         if (addressRes.data.data?.length) {
           setSelectedAddressId(addressRes.data.data.find((item) => item.isDefault)?._id || addressRes.data.data[0]._id);
         }
+        setActiveCoupons(couponsRes.data.data || []);
       } catch (error) {
         notification.error({ title: getErrorMessage(error) });
       }
@@ -123,23 +131,55 @@ export default function CheckoutPage() {
   };
 
   // Hàm kiểm tra coupon
-  const handleCheckCoupon = async () => {
-    if (!couponCode.trim()) {
+  const handleCheckCoupon = async (codeToApply = couponCode) => {
+    if (!codeToApply.trim()) {
       setCouponInfo(null);
       notification.warning({ message: "Vui lòng nhập mã giảm giá." });
       return;
     }
     try {
-      const res = await api.get(`/coupon/validate/${couponCode.trim()}`);
+      const res = await api.get(`/coupon/validate/${codeToApply.trim()}`);
       const coupon = res.data.data;
-      // Tính discountAmount dựa trên loại coupon
+      
+      // Tìm các sản phẩm hợp lệ trong giỏ hàng
+      let eligibleItems = [];
+      if (!coupon.applyTo || coupon.applyTo.includes("all") || coupon.applyTo === "all") {
+        eligibleItems = cart.items;
+      } else if (coupon.applyTo.includes("product") || coupon.applyTo === "product") {
+        eligibleItems = cart.items.filter(item => 
+          coupon.targetId && coupon.targetId.includes(String(item.variantId?.productId?._id || item.variantId?.productId))
+        );
+      } else if (coupon.applyTo.includes("category") || coupon.applyTo === "category") {
+        eligibleItems = cart.items.filter(item => 
+          coupon.targetId && coupon.targetId.includes(String(item.variantId?.productId?.categoryId))
+        );
+      } else if (coupon.applyTo.includes("brand") || coupon.applyTo === "brand") {
+        eligibleItems = cart.items.filter(item => 
+          coupon.targetId && coupon.targetId.includes(String(item.variantId?.productId?.brandId))
+        );
+      }
+
+      if (!eligibleItems.length) {
+        setCouponInfo(null);
+        notification.error({ message: "Mã giảm giá không áp dụng cho sản phẩm nào trong giỏ hàng." });
+        return;
+      }
+
+      // Tính tổng tiền các sản phẩm được giảm giá
+      const eligibleAmount = eligibleItems.reduce((sum, item) => sum + ((item.variantId?.price || 0) * item.quantity), 0);
+
+      // Tính discountAmount
       let discount = 0;
       if (coupon.discountType === "percent") {
-        discount = Math.round((cart.totalPrice * coupon.discountValue) / 100);
+        discount = Math.round((eligibleAmount * coupon.discountValue) / 100);
       } else if (coupon.discountType === "fixed") {
-        discount = Math.min(coupon.discountValue, cart.totalPrice);
+        discount = Math.min(coupon.discountValue, eligibleAmount);
       }
+
       setCouponInfo({ ...coupon, discountAmount: discount });
+      if (codeToApply !== couponCode) {
+        setCouponCode(codeToApply);
+      }
       notification.success({ message: `Áp dụng mã thành công! Giảm ${discount.toLocaleString()}đ` });
     } catch (error) {
       setCouponInfo(null);
@@ -167,16 +207,17 @@ export default function CheckoutPage() {
             )}
             locale={{ emptyText: "Cart is empty" }}
           />
-          <div style={{ margin: '16px 0' }}>
+          <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center' }}>
             <Input
               placeholder="Nhập mã giảm giá"
               value={couponCode}
               onChange={e => setCouponCode(e.target.value)}
               style={{ width: 200, marginRight: 8 }}
-              onPressEnter={handleCheckCoupon}
+              onPressEnter={() => handleCheckCoupon(couponCode)}
               maxLength={32}
             />
-            <Button onClick={handleCheckCoupon} disabled={!couponCode.trim()}>Áp dụng</Button>
+            <Button onClick={() => handleCheckCoupon(couponCode)} disabled={!couponCode.trim()} style={{ marginRight: 8 }}>Áp dụng</Button>
+            <Button type="dashed" onClick={() => setIsCouponModalOpen(true)}>Chọn mã</Button>
           </div>
           {couponInfo && (
             <div style={{ color: 'green', marginBottom: 8 }}>
@@ -257,6 +298,33 @@ export default function CheckoutPage() {
           )}
         </Card>
       </Space>
+
+      <Modal 
+        title="Chọn mã giảm giá" 
+        open={isCouponModalOpen} 
+        onCancel={() => setIsCouponModalOpen(false)}
+        footer={null}
+      >
+        <List
+          dataSource={activeCoupons}
+          renderItem={(coupon) => (
+            <List.Item
+              actions={[
+                <Button type="primary" size="small" onClick={() => {
+                  handleCheckCoupon(coupon.code);
+                  setIsCouponModalOpen(false);
+                }}>Áp dụng</Button>
+              ]}
+            >
+              <List.Item.Meta
+                title={<Space><Text strong>{coupon.code}</Text> <Tag color="blue">{coupon.discountType === 'percent' ? `${coupon.discountValue}%` : `${Intl.NumberFormat('vi-VN').format(coupon.discountValue)}đ`}</Tag></Space>}
+                description={`Áp dụng cho: ${coupon.applyTo === 'all' ? 'Tất cả sản phẩm' : coupon.applyTo}`}
+              />
+            </List.Item>
+          )}
+          locale={{ emptyText: "Không có mã giảm giá nào" }}
+        />
+      </Modal>
     </div>
   );
 }
