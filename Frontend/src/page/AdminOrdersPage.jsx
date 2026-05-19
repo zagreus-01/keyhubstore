@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Button, Card, Select, Space, Table, Tag, Typography, notification, Spin } from "antd";
+import { Button, Card, Input, Select, Space, Table, Tag, Typography, notification, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
 
 const { Title, Text } = Typography;
@@ -17,6 +17,7 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   const statuses = useMemo(() => ["pending", "processing", "shipping", "completed", "cancelled"], []);
 
@@ -48,6 +49,26 @@ export default function AdminOrdersPage() {
       setUpdatingId(null);
     }
   };
+
+  const filteredOrders = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) return orders;
+    return orders.filter((order) => {
+      const customerName = order.user?.fullName || order.shippingAddress?.fullName || "";
+      const customerEmail = order.user?.email || order.email || "";
+      const status = order.orderStatus || "";
+      const payment = order.paymentMethod || "";
+      return [
+        order._id,
+        customerName,
+        customerEmail,
+        status,
+        payment
+      ]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(keyword));
+    });
+  }, [orders, searchKeyword]);
 
   const columns = [
     {
@@ -125,15 +146,27 @@ export default function AdminOrdersPage() {
     <div className="page-admin-orders">
       <Title level={2}>Orders Management (Staff)</Title>
 
-      <Card>
+      <Card className="admin-info-card">
         <Text type="secondary">View all orders and update order statuses.</Text>
       </Card>
+
+      <div className="page-title-row" style={{ marginTop: 24, gap: 12, alignItems: "center" }}>
+        <Input.Search
+          placeholder="Search orders by ID, customer, email, status, payment"
+          allowClear
+          enterButton="Search"
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          onSearch={setSearchKeyword}
+          style={{ maxWidth: 420, width: "100%" }}
+        />
+      </div>
 
       <Card style={{ marginTop: 24 }}>
         {loading ? (
           <div className="page-loading"><Spin tip="Loading orders..." /></div>
         ) : (
-          <Table rowKey={(r) => r._id} dataSource={orders} columns={columns} pagination={{ pageSize: 10 }} />
+          <Table rowKey={(r) => r._id} dataSource={filteredOrders} columns={columns} pagination={{ pageSize: 10 }} locale={{ emptyText: searchKeyword ? "No matching orders" : "No orders available" }} />
         )}
       </Card>
     </div>

@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { ConfigProvider } from "antd";
 import { AuthProvider, useAuth } from "./components/context/AuthContext";
 import DefaultLayout from "./components/layout/DefaultLayout";
+import AdminLayout from "./components/layout/AdminLayout";
 import HomePage from "./page/HomePage";
 import ProductsPage from "./page/ProductsPage";
 import ProductDetailPage from "./page/ProductDetailPage";
@@ -20,6 +21,7 @@ import AdminOrdersPage from "./page/AdminOrdersPage";
 import AdminProductPage from "./page/AdminProductPage";
 import AdminCategoryPage from "./page/AdminCategoryPage";
 import AdminBrandPage from "./page/AdminBrandPage";
+import AdminCouponPage from "./page/AdminCouponPage";
 import UserManagementPage from "./page/UserManagementPage";
 import NotFoundPage from "./page/NotFoundPage";
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -46,12 +48,76 @@ function App() {
               <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
-              <Route path="/admin/dashboard" element={<ProtectedRoute roles={["staff", "admin"]}><AdminDashboardPage /></ProtectedRoute>} />
-              <Route path="/admin/orders" element={<ProtectedRoute roles={["staff", "admin"]}><AdminOrdersPage /></ProtectedRoute>} />
-              <Route path="/admin/products" element={<ProtectedRoute roles={["admin"]}><AdminProductPage /></ProtectedRoute>} />
-              <Route path="/admin/categories" element={<ProtectedRoute roles={["admin"]}><AdminCategoryPage /></ProtectedRoute>} />
-              <Route path="/admin/brands" element={<ProtectedRoute roles={["admin"]}><AdminBrandPage /></ProtectedRoute>} />
-              <Route path="/admin/users" element={<ProtectedRoute roles={["admin"]}><UserManagementPage /></ProtectedRoute>} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute roles={["staff", "admin"]}>
+                    <AdminLayout>
+                      <AdminDashboardPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/orders"
+                element={
+                  <ProtectedRoute roles={["staff", "admin"]}>
+                    <AdminLayout>
+                      <AdminOrdersPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/products"
+                element={
+                  <ProtectedRoute roles={["admin"]}>
+                    <AdminLayout>
+                      <AdminProductPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/categories"
+                element={
+                  <ProtectedRoute roles={["admin"]}>
+                    <AdminLayout>
+                      <AdminCategoryPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/brands"
+                element={
+                  <ProtectedRoute roles={["admin"]}>
+                    <AdminLayout>
+                      <AdminBrandPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/coupons"
+                element={
+                  <ProtectedRoute roles={["admin"]}>
+                    <AdminLayout>
+                      <AdminCouponPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute roles={["admin"]}>
+                    <AdminLayout>
+                      <UserManagementPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/login" element={<GuestGuard><LoginPage /></GuestGuard>} />
               <Route path="/register" element={<GuestGuard><RegisterPage /></GuestGuard>} />
               <Route path="/forgot-password" element={<GuestGuard><ForgotPasswordPage /></GuestGuard>} />

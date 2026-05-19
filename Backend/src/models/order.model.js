@@ -34,16 +34,20 @@ const orderSchema = new mongoose.Schema({
 
     couponCode: String,
 
-    discountPercent: {
-        type: Number,
-        default: 0
-    },
 
+    discountType: {
+        type: String,
+        enum: ["percent", "fixed"],
+        default: undefined
+    },
+    discountValue: {
+        type: Number,
+        default: undefined
+    },
     discountAmount: {
         type: Number,
         default: 0
     },
-
     finalAmount: Number,
 
     shippingAddress: {

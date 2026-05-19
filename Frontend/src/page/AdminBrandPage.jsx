@@ -10,6 +10,7 @@ export default function AdminBrandPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentBrand, setCurrentBrand] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [form] = Form.useForm();
 
   const fetchBrands = async () => {
@@ -78,6 +79,14 @@ export default function AdminBrandPage() {
     }
   };
 
+  const filteredBrands = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) return brands;
+    return brands.filter((brand) =>
+      brand.brandName?.toLowerCase().includes(keyword)
+    );
+  }, [brands, searchKeyword]);
+
   const columns = useMemo(
     () => [
       {
@@ -122,6 +131,18 @@ export default function AdminBrandPage() {
         <p>Quản lý thương hiệu sản phẩm: tạo, chỉnh sửa và xóa thương hiệu.</p>
       </Card>
 
+      <div className="page-title-row" style={{ marginTop: 24, gap: 12, alignItems: "center" }}>
+        <Input.Search
+          placeholder="Search brands by name"
+          allowClear
+          enterButton="Search"
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          onSearch={setSearchKeyword}
+          style={{ maxWidth: 420, width: "100%" }}
+        />
+      </div>
+
       <Card style={{ marginTop: 24 }}>
         {loading ? (
           <div className="page-loading">
@@ -130,10 +151,10 @@ export default function AdminBrandPage() {
         ) : (
           <Table
             rowKey={(item) => item._id}
-            dataSource={brands}
+            dataSource={filteredBrands}
             columns={columns}
             pagination={{ pageSize: 10 }}
-            locale={{ emptyText: "No brands found" }}
+            locale={{ emptyText: searchKeyword ? "No matching brands" : "No brands found" }}
           />
         )}
       </Card>

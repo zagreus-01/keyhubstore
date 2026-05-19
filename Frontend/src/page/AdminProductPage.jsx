@@ -24,6 +24,7 @@ export default function AdminProductPage() {
   const [imageFileList, setImageFileList] = useState([]);
   const [variantImageLists, setVariantImageLists] = useState({});
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   const [form] = Form.useForm();
 
@@ -57,6 +58,25 @@ export default function AdminProductPage() {
     if (filePath.startsWith("http")) return filePath;
     return `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/${filePath}`;
   };
+
+  const filteredProducts = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) return products;
+    return products.filter((product) => {
+      const categoryName = product.categoryId?.categoryName || product.categoryId || "";
+      const brandName = product.brandId?.brandName || product.brandId || "";
+      const sku = product.variants?.map((variant) => variant.sku).join(" ") || "";
+      return [
+        product.productName,
+        product.slug,
+        categoryName,
+        brandName,
+        sku
+      ]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(keyword));
+    });
+  }, [products, searchKeyword]);
 
   const openProductModal = (product = null) => {
     setCurrentProduct(product);
@@ -340,9 +360,21 @@ export default function AdminProductPage() {
         </Button>
       </div>
 
-      <Card>
+      <Card className="admin-info-card">
         <Text type="secondary">Quản lý sản phẩm: xem, tạo, cập nhật và xóa sản phẩm.</Text>
       </Card>
+
+      <div className="page-title-row" style={{ marginTop: 24, gap: 12, alignItems: "center" }}>
+        <Input.Search
+          placeholder="Search products by name, SKU, category, brand"
+          allowClear
+          enterButton="Search"
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          onSearch={setSearchKeyword}
+          style={{ maxWidth: 420, width: "100%" }}
+        />
+      </div>
 
       <Card style={{ marginTop: 24 }}>
         {loading ? (
@@ -352,10 +384,10 @@ export default function AdminProductPage() {
         ) : (
           <Table
             rowKey={(item) => item._id}
-            dataSource={products}
+            dataSource={filteredProducts}
             columns={columns}
             pagination={{ pageSize: 10 }}
-            locale={{ emptyText: "No products available" }}
+            locale={{ emptyText: searchKeyword ? "No matching products" : "No products available" }}
           />
         )}
       </Card>

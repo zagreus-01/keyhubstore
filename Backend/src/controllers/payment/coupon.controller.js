@@ -43,8 +43,18 @@ const getCouponById = async (req, res) => {
 const validateCoupon = async (req, res) => {
     try {
         const { code } = req.params;
-        const data = await couponService.validateCoupon(code);
-
+        const coupon = await couponService.validateCoupon(code);
+        // Trả về thông tin coupon áp dụng cho đối tượng nào
+        const data = {
+            code: coupon.code,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
+            applyTo: coupon.applyTo,
+            targetId: coupon.targetId,
+            targetName: coupon.targetName,
+            startAt: coupon.startAt,
+            expiredAt: coupon.expiredAt
+        };
         return res.status(200).json({
             success: true,
             data

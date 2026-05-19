@@ -11,6 +11,10 @@ export default function CheckoutPage() {
   const normalizedRole = String(user?.role || "").toLowerCase();
   const isCustomer = normalizedRole === "customer";
   const [cart, setCart] = useState({ items: [], totalPrice: 0 });
+  const [couponCode, setCouponCode] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [finalAmount, setFinalAmount] = useState(0);
+  const [couponInfo, setCouponInfo] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [selectedAddressId, setSelectedAddressId] = useState("");
@@ -38,6 +42,17 @@ export default function CheckoutPage() {
     };
     fetchData();
   }, [isCustomer]);
+
+  // Tính lại finalAmount khi cart hoặc couponInfo thay đổi
+  useEffect(() => {
+    if (couponInfo && cart.totalPrice) {
+      setDiscountAmount(couponInfo.discountAmount || 0);
+      setFinalAmount((cart.totalPrice || 0) - (couponInfo.discountAmount || 0));
+    } else {
+      setDiscountAmount(0);
+      setFinalAmount(cart.totalPrice || 0);
+    }
+  }, [couponInfo, cart]);
 
   if (!isCustomer) {
     return (
@@ -77,7 +92,7 @@ export default function CheckoutPage() {
             address: `${values.detailAddress}, ${values.ward}, ${values.district}, ${values.province}`
           };
 
-      const res = await api.post("/order/checkout", { shippingAddress, paymentMethod });
+      const res = await api.post("/order/checkout", { shippingAddress, paymentMethod, couponCode: couponCode.trim() });
       const order = res.data.data;
       notification.success({ title: "Order placed successfully" });
       if (paymentMethod === "VNPAY") {
@@ -107,6 +122,31 @@ export default function CheckoutPage() {
     }
   };
 
+  // Hàm kiểm tra coupon
+  const handleCheckCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponInfo(null);
+      notification.warning({ message: "Vui lòng nhập mã giảm giá." });
+      return;
+    }
+    try {
+      const res = await api.get(`/coupon/validate/${couponCode.trim()}`);
+      const coupon = res.data.data;
+      // Tính discountAmount dựa trên loại coupon
+      let discount = 0;
+      if (coupon.discountType === "percent") {
+        discount = Math.round((cart.totalPrice * coupon.discountValue) / 100);
+      } else if (coupon.discountType === "fixed") {
+        discount = Math.min(coupon.discountValue, cart.totalPrice);
+      }
+      setCouponInfo({ ...coupon, discountAmount: discount });
+      notification.success({ message: `Áp dụng mã thành công! Giảm ${discount.toLocaleString()}đ` });
+    } catch (error) {
+      setCouponInfo(null);
+      notification.error({ message: getErrorMessage(error) });
+    }
+  };
+
   return (
     <div className="page-checkout">
       <Title>Checkout</Title>
@@ -127,9 +167,33 @@ export default function CheckoutPage() {
             )}
             locale={{ emptyText: "Cart is empty" }}
           />
+          <div style={{ margin: '16px 0' }}>
+            <Input
+              placeholder="Nhập mã giảm giá"
+              value={couponCode}
+              onChange={e => setCouponCode(e.target.value)}
+              style={{ width: 200, marginRight: 8 }}
+              onPressEnter={handleCheckCoupon}
+              maxLength={32}
+            />
+            <Button onClick={handleCheckCoupon} disabled={!couponCode.trim()}>Áp dụng</Button>
+          </div>
+          {couponInfo && (
+            <div style={{ color: 'green', marginBottom: 8 }}>
+              Đã áp dụng mã: <b>{couponInfo.code}</b> - Giảm {Intl.NumberFormat("vi-VN").format(couponInfo.discountAmount)}đ
+            </div>
+          )}
           <div className="checkout-total">
-            <Text type="secondary">Total</Text>
-            <Title level={4}>{Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(cart.totalPrice || 0)}</Title>
+            <Text type="secondary">Tạm tính</Text>
+            <Title level={5}>{Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(cart.totalPrice || 0)}</Title>
+            {discountAmount > 0 && (
+              <>
+                <Text type="secondary">Giảm giá</Text>
+                <Title level={5} style={{ color: 'green' }}>- {Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(discountAmount)}</Title>
+              </>
+            )}
+            <Text type="secondary">Tổng thanh toán</Text>
+            <Title level={4}>{Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(finalAmount)}</Title>
           </div>
         </Card>
 

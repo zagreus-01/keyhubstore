@@ -10,6 +10,7 @@ export default function AdminCategoryPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [form] = Form.useForm();
 
   const fetchCategories = async () => {
@@ -78,6 +79,14 @@ export default function AdminCategoryPage() {
     }
   };
 
+  const filteredCategories = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) return categories;
+    return categories.filter((category) =>
+      category.categoryName?.toLowerCase().includes(keyword)
+    );
+  }, [categories, searchKeyword]);
+
   const columns = useMemo(
     () => [
       {
@@ -122,6 +131,18 @@ export default function AdminCategoryPage() {
         <p>Quản lý danh mục sản phẩm: tạo, chỉnh sửa và xóa danh mục.</p>
       </Card>
 
+      <div className="page-title-row" style={{ marginTop: 24, gap: 12, alignItems: "center" }}>
+        <Input.Search
+          placeholder="Search categories by name"
+          allowClear
+          enterButton="Search"
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          onSearch={setSearchKeyword}
+          style={{ maxWidth: 420, width: "100%" }}
+        />
+      </div>
+
       <Card style={{ marginTop: 24 }}>
         {loading ? (
           <div className="page-loading">
@@ -130,10 +151,10 @@ export default function AdminCategoryPage() {
         ) : (
           <Table
             rowKey={(item) => item._id}
-            dataSource={categories}
+            dataSource={filteredCategories}
             columns={columns}
             pagination={{ pageSize: 10 }}
-            locale={{ emptyText: "No categories found" }}
+            locale={{ emptyText: searchKeyword ? "No matching categories" : "No categories found" }}
           />
         )}
       </Card>

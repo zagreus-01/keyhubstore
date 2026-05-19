@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, Col, Divider, Row, Statistic, Typography, notification, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const statusColors = {
   pending: "orange",

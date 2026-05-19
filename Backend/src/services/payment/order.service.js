@@ -74,19 +74,51 @@ const checkout = async (
 
     }
 
-    let discountPercent = 0;
+
+    let discountType = null;
+    let discountValue = 0;
     let discountAmount = 0;
     let finalAmount = totalAmount;
     let validatedCoupon = null;
 
     if (couponCode) {
-        validatedCoupon = await couponService.validateCoupon(
-            couponCode
-        );
-        discountPercent = validatedCoupon.discountPercent || 0;
-        discountAmount = Math.round(
-            (totalAmount * discountPercent) / 100
-        );
+        validatedCoupon = await couponService.validateCoupon(couponCode);
+        discountType = validatedCoupon.discountType;
+        discountValue = validatedCoupon.discountValue;
+
+        // Xác định sản phẩm áp dụng coupon
+        let eligibleItems = [];
+        if (
+            !validatedCoupon.applyTo ||
+            validatedCoupon.applyTo.includes("all")
+        ) {
+            eligibleItems = orderItems;
+        } else if (validatedCoupon.applyTo.includes("product")) {
+            eligibleItems = orderItems.filter(item =>
+                validatedCoupon.targetId && validatedCoupon.targetId.includes(String(item.variantId.productId?._id || item.variantId.productId))
+            );
+        } else if (validatedCoupon.applyTo.includes("category")) {
+            eligibleItems = orderItems.filter(item =>
+                validatedCoupon.targetId && validatedCoupon.targetId.includes(String(item.variantId.productId?.categoryId))
+            );
+        } else if (validatedCoupon.applyTo.includes("brand")) {
+            eligibleItems = orderItems.filter(item =>
+                validatedCoupon.targetId && validatedCoupon.targetId.includes(String(item.variantId.productId?.brandId))
+            );
+        }
+
+        if (!eligibleItems.length) {
+            throw new Error("Coupon không áp dụng cho sản phẩm nào trong giỏ hàng.");
+        }
+
+        // Tính tổng tiền các sản phẩm được giảm giá
+        const eligibleAmount = eligibleItems.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0);
+
+        if (discountType === "percent") {
+            discountAmount = Math.round((eligibleAmount * discountValue) / 100);
+        } else if (discountType === "fixed") {
+            discountAmount = Math.min(discountValue, eligibleAmount);
+        }
         finalAmount = totalAmount - discountAmount;
     }
 
@@ -98,14 +130,11 @@ const checkout = async (
 
         totalAmount,
 
-        couponCode: validatedCoupon
-            ? validatedCoupon.code
-            : undefined,
 
-        discountPercent,
-
+        couponCode: validatedCoupon ? validatedCoupon.code : undefined,
+        discountType: discountType || undefined,
+        discountValue: discountValue || undefined,
         discountAmount,
-
         finalAmount,
 
         shippingAddress,

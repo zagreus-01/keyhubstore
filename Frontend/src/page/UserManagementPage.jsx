@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Badge, Button, Card, Popconfirm, Select, Space, Table, Tag, Typography, notification, Spin } from "antd";
+import { Avatar, Badge, Button, Card, Input, Popconfirm, Select, Space, Table, Tag, Typography, notification, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
 import { useAuth } from "../components/context/AuthContext";
 
@@ -18,6 +18,7 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   const roleOptions = useMemo(
     () => ["customer", "staff", "admin"],
@@ -90,6 +91,21 @@ export default function UserManagementPage() {
       setUpdatingId(null);
     }
   };
+
+  const filteredUsers = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) return users;
+    return users.filter((user) => {
+      return [
+        user.fullName,
+        user.email,
+        user.role,
+        user.status
+      ]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(keyword));
+    });
+  }, [users, searchKeyword]);
 
   const columns = [
     {
@@ -179,9 +195,21 @@ export default function UserManagementPage() {
   return (
     <div className="page-user-management">
       <Title level={2}>User Management</Title>
-      <Card>
+      <Card className="admin-info-card">
         <Text type="secondary">Manage all users, change roles, block/unblock accounts, or remove non-admin accounts.</Text>
       </Card>
+
+      <div className="page-title-row" style={{ marginTop: 24, gap: 12, alignItems: "center" }}>
+        <Input.Search
+          placeholder="Search users by name, email, role, status"
+          allowClear
+          enterButton="Search"
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          onSearch={setSearchKeyword}
+          style={{ maxWidth: 420, width: "100%" }}
+        />
+      </div>
 
       <Card style={{ marginTop: 24 }}>
         {loading ? (
@@ -191,10 +219,10 @@ export default function UserManagementPage() {
         ) : (
           <Table
             rowKey={(record) => record._id}
-            dataSource={users}
+            dataSource={filteredUsers}
             columns={columns}
             pagination={{ pageSize: 10 }}
-            locale={{ emptyText: "No users found" }}
+            locale={{ emptyText: searchKeyword ? "No matching users" : "No users found" }}
           />
         )}
       </Card>

@@ -42,13 +42,19 @@ function AppHeader() {
     onClick: () => navigate(item.path)
   }));
 
+  const normalizedRole = String(user?.role || "").toLowerCase();
+  const isCustomer = !user || normalizedRole === "customer";
+  const isStaff = normalizedRole === "staff";
+  const isAdmin = normalizedRole === "admin";
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const showDashboardButton = user && (isStaff || isAdmin) && !isAdminRoute;
+
   const selectedKey = () => {
     if (location.pathname === "/") return "home";
     if (location.pathname.startsWith("/products")) return "products";
     return "";
   };
 
-  const isCustomer = !user || user.role === "customer";
   const userMenu = [
     {
       key: "profile",
@@ -76,12 +82,13 @@ function AppHeader() {
       <div className="header-content">
         <div className="brand" onClick={() => navigate("/")}>Keyhub Store</div>
         <Menu className="nav-menu" mode="horizontal" selectedKeys={[selectedKey()]} items={items} />
-        <Space wrap align="center" className="header-actions">
+        <Space align="center" className="header-actions">
           <Input.Search
             placeholder="Search products"
             allowClear
             onSearch={(value) => navigate(`/products?keyword=${encodeURIComponent(value)}`)}
-            style={{ width: 220, minWidth: 180 }}
+            className="header-search"
+            style={{ width: 240, minWidth: 220, flexShrink: 0 }}
           />
           {isCustomer && (
             <>
@@ -91,7 +98,7 @@ function AppHeader() {
               <Button type="text" icon={<HeartOutlined />} onClick={() => navigate("/wishlist")} />
             </>
           )}
-          {user && (normalizedRole === "staff" || normalizedRole === "admin") && (
+          {showDashboardButton && (
             <Button
               type="default"
               shape="round"
