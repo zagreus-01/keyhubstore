@@ -15,9 +15,9 @@ const create = async (req, res) => {
 
 const getAll = async (req, res) => {
     try {
-        const result = await productService.getAllProducts(req.query);
+        const { data, total, page, limit } = await productService.getAllProducts(req.query);
 
-        res.json({ data: result });
+        res.json({ data, total, page, limit });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

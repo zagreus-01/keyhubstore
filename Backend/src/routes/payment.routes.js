@@ -9,7 +9,8 @@ const {
     createVNPayPayment,
     vnpayReturn,
     createCODPayment,
-    getPaymentByOrder
+    getPaymentByOrder,
+    getOrderQR
 } = require("../controllers/payment/payment.controller");
 
 
@@ -44,6 +45,8 @@ router.get(
     "/vnpay-return",
     vnpayReturn
 );
+
+router.get('/order/:orderId/qr', getOrderQR);
 
 
 module.exports = router;

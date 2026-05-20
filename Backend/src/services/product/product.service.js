@@ -19,7 +19,7 @@ const createProduct = async (data) => {
 };
 
 const getAllProducts = async (query) => {
-    const { keyword, categoryId, brandId, minPrice, maxPrice } = query;
+    const { keyword, categoryId, brandId, minPrice, maxPrice, sortBy, page, limit } = query;
 
     const filter = {
         isDeleted: false,
@@ -33,9 +33,17 @@ const getAllProducts = async (query) => {
         filter.$text = { $search: keyword };
     }
 
+    let sortOptions = { createdAt: -1 };
+    if (sortBy === "sold") {
+        sortOptions = { sold: -1 };
+    } else if (sortBy === "views") {
+        sortOptions = { views: -1 };
+    }
+
     const products = await Product.find(filter)
         .populate("categoryId")
-        .populate("brandId");
+        .populate("brandId")
+        .sort(sortOptions);
 
     const result = await Promise.all(
         products.map(async (p) => {
@@ -52,7 +60,7 @@ const getAllProducts = async (query) => {
             const max = Math.max(...prices);
 
             if (minPrice && maxPrice) {
-                if (max < minPrice || min > maxPrice) {
+                if (max < Number(minPrice) || min > Number(maxPrice)) {
                     return null;
                 }
             }
@@ -65,14 +73,40 @@ const getAllProducts = async (query) => {
         })
     );
 
-    return result.filter(Boolean);
+    const filteredResult = result.filter(Boolean);
+    const total = filteredResult.length;
+    
+    let paginatedData = filteredResult;
+    let pageNum = 1;
+    let limitNum = filteredResult.length; // Default to all if no limit
+
+    if (page && limit) {
+        pageNum = parseInt(page, 10);
+        limitNum = parseInt(limit, 10);
+        const startIndex = (pageNum - 1) * limitNum;
+        paginatedData = filteredResult.slice(startIndex, startIndex + limitNum);
+    } else if (limit) {
+        limitNum = parseInt(limit, 10);
+        paginatedData = filteredResult.slice(0, limitNum);
+    }
+
+    return {
+        data: paginatedData,
+        total,
+        page: pageNum,
+        limit: limitNum
+    };
 };
 
 const getProductById = async (id) => {
-    const product = await Product.findOne({
-        _id: id,
-        isDeleted: false
-    })
+    const product = await Product.findOneAndUpdate(
+        {
+            _id: id,
+            isDeleted: false
+        },
+        { $inc: { views: 1 } },
+        { new: true }
+    )
         .populate("categoryId")
         .populate("brandId");
 

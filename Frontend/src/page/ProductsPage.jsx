@@ -19,6 +19,10 @@ export default function ProductsPage() {
   const [keyword, setKeyword] = useState(searchParams.get("keyword") || "");
   const [categoryId, setCategoryId] = useState(searchParams.get("categoryId") || "");
   const [brandId, setBrandId] = useState(searchParams.get("brandId") || "");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const limit = 12;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,20 +45,61 @@ export default function ProductsPage() {
     if (brandId) params.brandId = brandId;
     setSearchParams(params);
 
-    const fetchProducts = async () => {
+    const fetchInitialProducts = async () => {
       setLoading(true);
+      setPage(1);
       try {
-        const query = new URLSearchParams(params).toString();
+        const query = new URLSearchParams({ ...params, page: 1, limit }).toString();
         const response = await api.get(`/product?${query}`);
-        setProducts(response.data.data || []);
+        const newProducts = response.data.data || [];
+        setProducts(newProducts);
+        setHasMore(newProducts.length >= limit);
       } catch (error) {
         console.error(error);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+    fetchInitialProducts();
   }, [keyword, categoryId, brandId, setSearchParams]);
+
+  useEffect(() => {
+    if (page === 1) return;
+
+    const fetchMoreProducts = async () => {
+      setLoadingMore(true);
+      try {
+        const params = {};
+        if (keyword) params.keyword = keyword;
+        if (categoryId) params.categoryId = categoryId;
+        if (brandId) params.brandId = brandId;
+        
+        const query = new URLSearchParams({ ...params, page, limit }).toString();
+        const response = await api.get(`/product?${query}`);
+        const newProducts = response.data.data || [];
+        setProducts(prev => [...prev, ...newProducts]);
+        setHasMore(newProducts.length >= limit);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoadingMore(false);
+      }
+    };
+    fetchMoreProducts();
+  }, [page, keyword, categoryId, brandId]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 200) {
+        if (!loading && !loadingMore && hasMore) {
+          setPage(prev => prev + 1);
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [loading, loadingMore, hasMore]);
 
   return (
     <div className="page-products">
@@ -114,13 +159,23 @@ export default function ProductsPage() {
           ))}
         </Row>
       ) : products.length ? (
-        <Row gutter={[16, 16]}>
-          {products.map((product) => (
-            <Col key={product._id} xs={24} sm={12} md={6}>
-              <ProductCard product={product} />
-            </Col>
-          ))}
-        </Row>
+        <>
+          <Row gutter={[16, 16]}>
+            {products.map((product) => (
+              <Col key={product._id} xs={24} sm={12} md={6}>
+                <ProductCard product={product} />
+              </Col>
+            ))}
+          </Row>
+          {loadingMore && (
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <Skeleton.Button active size="large" shape="round" />
+            </div>
+          )}
+          {!hasMore && products.length > 0 && (
+            <Divider plain>Hết sản phẩm</Divider>
+          )}
+        </>
       ) : (
         <Empty description="No products found" />
       )}

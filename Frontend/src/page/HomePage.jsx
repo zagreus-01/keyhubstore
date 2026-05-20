@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api, { getBackendUrl } from "../util/api";
 import ProductCard from "../components/common/ProductCard";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
+import { Autoplay, Pagination, Navigation } from "swiper/modules";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -33,6 +33,8 @@ const defaultHeroSlides = [
 export default function HomePage() {
   const [heroSlides, setHeroSlides] = useState(defaultHeroSlides);
   const [products, setProducts] = useState([]);
+  const [topSelling, setTopSelling] = useState([]);
+  const [topViewed, setTopViewed] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,15 +44,19 @@ export default function HomePage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [productRes, categoryRes, brandRes, labelRes] =
+        const [productRes, topSellingRes, topViewedRes, categoryRes, brandRes, labelRes] =
           await Promise.all([
-            api.get("/product?limit=12"),
+            api.get("/product?limit=8"),
+            api.get("/product?sortBy=sold&limit=10"),
+            api.get("/product?sortBy=views&limit=10"),
             api.get("/category"),
             api.get("/brand"),
             api.get("/upload/label"),
           ]);
 
-        setProducts(productRes.data.data.slice(0, 8));
+        setProducts(productRes.data.data);
+        setTopSelling(topSellingRes.data.data || []);
+        setTopViewed(topViewedRes.data.data || []);
         setCategories(categoryRes.data.data);
         setBrands(brandRes.data.data);
 
@@ -426,6 +432,70 @@ export default function HomePage() {
               ))
             )}
           </Row>
+        </section>
+
+        {/* TOP SELLING PRODUCTS */}
+        <section className="home-section">
+          <Title level={3}>Sản phẩm bán chạy nhất</Title>
+          {loading ? (
+            <Row gutter={[16, 16]}>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Col key={index} xs={24} sm={12} md={6}><Card><Skeleton active /></Card></Col>
+              ))}
+            </Row>
+          ) : (
+            <Swiper
+              modules={[Autoplay, Pagination, Navigation]}
+              navigation
+              spaceBetween={16}
+              slidesPerView={1}
+              breakpoints={{
+                576: { slidesPerView: 2 },
+                768: { slidesPerView: 3 },
+                992: { slidesPerView: 4 },
+              }}
+              style={{ padding: "10px 0 40px" }}
+              pagination={{ clickable: true, dynamicBullets: true }}
+            >
+              {topSelling.map((product) => (
+                <SwiperSlide key={product._id}>
+                  <ProductCard product={product} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          )}
+        </section>
+
+        {/* MOST VIEWED PRODUCTS */}
+        <section className="home-section">
+          <Title level={3}>Sản phẩm xem nhiều nhất</Title>
+          {loading ? (
+            <Row gutter={[16, 16]}>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Col key={index} xs={24} sm={12} md={6}><Card><Skeleton active /></Card></Col>
+              ))}
+            </Row>
+          ) : (
+            <Swiper
+              modules={[Autoplay, Pagination, Navigation]}
+              navigation
+              spaceBetween={16}
+              slidesPerView={1}
+              breakpoints={{
+                576: { slidesPerView: 2 },
+                768: { slidesPerView: 3 },
+                992: { slidesPerView: 4 },
+              }}
+              style={{ padding: "10px 0 40px" }}
+              pagination={{ clickable: true, dynamicBullets: true }}
+            >
+              {topViewed.map((product) => (
+                <SwiperSlide key={product._id}>
+                  <ProductCard product={product} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          )}
         </section>
 
         {/* FEATURES */}

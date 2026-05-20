@@ -130,9 +130,23 @@ const getPaymentByOrder = async (
 };
 
 
+// =========================
+// GET PAYMENT DETAIL
+// =========================
+const getOrderQR = async (req, res) => {
+  try {
+    const qrUrl = await paymentService.createVNPayPayment(req.params.orderId, req.ip);
+    return res.json({ qrPayload: qrUrl });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+
 module.exports = {
     createVNPayPayment,
     vnpayReturn,
     createCODPayment,
-    getPaymentByOrder
+    getPaymentByOrder,
+    getOrderQR
 };

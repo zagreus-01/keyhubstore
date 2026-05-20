@@ -17,6 +17,7 @@ export default function CheckoutPage() {
   const [couponInfo, setCouponInfo] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [qrPayload, setQrPayload] = useState(null);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -244,32 +245,38 @@ export default function CheckoutPage() {
               <Form.Item label="Choose saved address">
                 <Select value={selectedAddressId} onChange={setSelectedAddressId} options={addresses.map((item) => ({ value: item._id, label: `${item.fullName} - ${item.phone}` }))} />
               </Form.Item>
-              {selectedAddress && (
+              {selectedAddress && !showNewAddressForm && (
                 <Card type="inner" variant="outlined">
                   <Text strong>{selectedAddress.fullName}</Text>
                   <div>{selectedAddress.phone}</div>
                   <div>{`${selectedAddress.detailAddress}, ${selectedAddress.ward}, ${selectedAddress.district}, ${selectedAddress.province}`}</div>
                 </Card>
               )}
-              <Divider>Or enter a new shipping address</Divider>
-              <Form.Item label="Full name" name="fullName" rules={hasSavedAddress ? [] : [{ required: true, message: "Enter full name" }]}> 
-                <Input placeholder="Name" />
-              </Form.Item>
-              <Form.Item label="Phone" name="phone" rules={hasSavedAddress ? [] : [{ required: true, message: "Enter phone number" }]}> 
-                <Input placeholder="Phone" />
-              </Form.Item>
-              <Form.Item label="Province" name="province" rules={hasSavedAddress ? [] : [{ required: true, message: "Enter province" }]}> 
-                <Input placeholder="Province" />
-              </Form.Item>
-              <Form.Item label="District" name="district" rules={hasSavedAddress ? [] : [{ required: true, message: "Enter district" }]}> 
-                <Input placeholder="District" />
-              </Form.Item>
-              <Form.Item label="Ward" name="ward" rules={hasSavedAddress ? [] : [{ required: true, message: "Enter ward" }]}> 
-                <Input placeholder="Ward" />
-              </Form.Item>
-              <Form.Item label="Detail address" name="detailAddress" rules={hasSavedAddress ? [] : [{ required: true, message: "Enter detail address" }]}> 
-                <Input placeholder="Street, apartment, building..." />
-              </Form.Item>
+              <Button type="link" onClick={() => setShowNewAddressForm(!showNewAddressForm)} style={{ marginBottom: 8 }}>
+                {showNewAddressForm ? 'Ẩn form nhập địa chỉ' : 'Nhập địa chỉ mới'}
+              </Button>
+              {showNewAddressForm && (
+                <>
+                  <Form.Item label="Full name" name="fullName" rules={[{ required: true, message: "Enter full name" }]}>
+                    <Input placeholder="Name" />
+                  </Form.Item>
+                  <Form.Item label="Phone" name="phone" rules={[{ required: true, message: "Enter phone number" }]}>
+                    <Input placeholder="Phone" />
+                  </Form.Item>
+                  <Form.Item label="Province" name="province" rules={[{ required: true, message: "Enter province" }]}>
+                    <Input placeholder="Province" />
+                  </Form.Item>
+                  <Form.Item label="District" name="district" rules={[{ required: true, message: "Enter district" }]}>
+                    <Input placeholder="District" />
+                  </Form.Item>
+                  <Form.Item label="Ward" name="ward" rules={[{ required: true, message: "Enter ward" }]}>
+                    <Input placeholder="Ward" />
+                  </Form.Item>
+                  <Form.Item label="Detail address" name="detailAddress" rules={[{ required: true, message: "Enter detail address" }]}>
+                    <Input placeholder="Street, apartment, building..." />
+                  </Form.Item>
+                </>
+              )}
               <Form.Item label="Payment method" name="paymentMethod" initialValue={paymentMethod}>
                 <Radio.Group onChange={(event) => setPaymentMethod(event.target.value)} value={paymentMethod}>
                   <Radio value="COD">Cash on delivery</Radio>
