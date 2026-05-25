@@ -7,10 +7,14 @@ const { Option } = Select;
 
 const statusColor = {
   pending: "orange",
-  processing: "blue",
+  preparing: "blue",
   shipping: "cyan",
-  completed: "green",
-  cancelled: "red"
+  delivered: "green",
+  cancelled: "red",
+  confirmed: "lime",
+  preparing: "gold",
+  delivered: "purple",
+  cancel_requested: "volcano"
 };
 
 export default function AdminOrdersPage() {
@@ -19,7 +23,15 @@ export default function AdminOrdersPage() {
   const [updatingId, setUpdatingId] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState("");
 
-  const statuses = useMemo(() => ["pending", "processing", "shipping", "completed", "cancelled"], []);
+  const statuses = useMemo(() => [
+    "pending",
+    "confirmed",
+    "preparing",
+    "shipping",
+    "delivered",
+    "cancel_requested",
+    "cancelled"
+  ], []);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -134,7 +146,7 @@ export default function AdminOrdersPage() {
       render: (_, record) => (
         <Space>
           <Button onClick={() => window.open(`/orders/${record._id}`, "_blank")}>View</Button>
-          <Button type="primary" onClick={() => handleChangeStatus(record._id, 'completed')} disabled={record.orderStatus === 'completed' || record.orderStatus === 'cancelled'} loading={updatingId === record._id}>
+          <Button type="primary" onClick={() => handleChangeStatus(record._id, 'delivered')} disabled={record.orderStatus === 'delivered' || record.orderStatus === 'cancelled'} loading={updatingId === record._id}>
             Complete
           </Button>
         </Space>

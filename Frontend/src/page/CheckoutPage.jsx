@@ -43,8 +43,7 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState("COD");
 
-  const [qrPayload, setQrPayload] = useState(null);
-  const [showQrModal, setShowQrModal] = useState(false);
+
 
   const [loading, setLoading] = useState(false);
 
@@ -154,31 +153,20 @@ export default function CheckoutPage() {
 
       if (paymentMethod === "VNPAY") {
         try {
-          const qrRes = await api.get(`/order/${order._id}/qr`);
-
-          setQrPayload(qrRes.data.data.qrPayload);
-
-          setShowQrModal(true);
-        } catch (err) {
-          notification.warning({
-            message:
-              "QR backend unavailable, showing local QR fallback"
+          // Gọi API tạo link thanh toán VNPay
+          const paymentRes = await api.post("/payment/vnpay", {
+            orderId: order._id
           });
 
-          try {
-            const fallback = `QR_PAY|order:${order._id}|amount:${order.finalAmount}`;
-
-            setQrPayload(fallback);
-
-            setShowQrModal(true);
-          } catch (e) {
-            notification.error({
-              message: "Không thể tạo QR",
-              description: getErrorMessage(err)
-            });
-
-            navigate("/orders");
-          }
+          // Redirect trực tiếp tới VNPay
+          window.location.href = paymentRes.data.paymentUrl;
+          return; // Không setLoading(false) vì đang redirect
+        } catch (err) {
+          notification.error({
+            message: "Không thể tạo link thanh toán VNPay",
+            description: getErrorMessage(err)
+          });
+          navigate("/orders");
         }
       } else {
         navigate("/orders");
@@ -620,47 +608,6 @@ export default function CheckoutPage() {
                 >
                   Place order
                 </Button>
-
-                {showQrModal && qrPayload && (
-                  <div
-                    style={{
-                      marginTop: 16,
-                      textAlign: "center"
-                    }}
-                  >
-                    <div
-                      style={{
-                        marginTop: 8,
-                        wordBreak: "break-all"
-                      }}
-                    >
-
-                      <div style={{ marginTop: 12 }}>
-                        <Button
-                          type="primary"
-                          onClick={() =>
-                            window.open(
-                              qrPayload,
-                              "_blank"
-                            )
-                          }
-                        >
-                          Đi tới link thanh toán
-                        </Button>
-                      </div>
-                                          <div style={{ marginTop: 8 }}>
-                      <Button
-                        onClick={() => {
-                          setShowQrModal(false);
-                          navigate("/orders");
-                        }}
-                      >
-                        I have paid
-                      </Button>
-                    </div>
-                    </div>
-                  </div>
-                )}
               </Form.Item>
             </Form>
           ) : (

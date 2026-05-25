@@ -1,7 +1,11 @@
 // controllers/order.controller.js
 
+const mongoose = require("mongoose");
 const orderService = require("../../services/payment/order.service");
 const paymentService = require("../../services/payment/payment.service");
+
+// Helper function to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 
 // =========================
@@ -78,17 +82,27 @@ const getOrderDetail = async (
 ) => {
 
     try {
+        const orderId = req.params.id;
+
+        // Validate ObjectId
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
+
         const role = (req.user.role || "").toLowerCase();
         let order;
 
         if (role === "staff" || role === "admin") {
             order = await orderService.getOrderById(
-                req.params.id
+                orderId
             );
         } else {
             order = await orderService.getOrderDetail(
                 req.user.id,
-                req.params.id
+                orderId
             );
         }
 
@@ -147,11 +161,20 @@ const cancelOrder = async (
 ) => {
 
     try {
+        const orderId = req.params.id;
+
+        // Validate ObjectId
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
 
         const order =
             await orderService.cancelOrder(
                 req.user.id,
-                req.params.id
+                orderId
             );
 
         return res.status(200).json({
@@ -181,10 +204,19 @@ const updateOrderStatus = async (
 ) => {
 
     try {
+        const orderId = req.params.id;
+
+        // Validate ObjectId
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
 
         const order =
             await orderService.updateOrderStatus(
-                req.params.id,
+                orderId,
                 req.body.status
             );
 
@@ -215,6 +247,41 @@ module.exports = {
     updateOrderStatus
 };
 
+// =========================
+// CONFIRM DELIVERY
+// =========================
+const confirmDelivery = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
+
+        const order = await orderService.getOrderDetail(req.user.id, orderId);
+        if (order.orderStatus !== "shipping") {
+            throw new Error("Only orders that are currently shipping can be confirmed delivered.");
+        }
+
+        const updatedOrder = await orderService.updateOrderStatus(orderId, "delivered");
+        return res.status(200).json({
+            success: true,
+            message: "Order delivery confirmed.",
+            data: updatedOrder
+        });
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+module.exports.confirmDelivery = confirmDelivery;
+
 
 // =========================
 // GET QR PAYLOAD
@@ -223,6 +290,14 @@ const getOrderQr = async (req, res) => {
     try {
         const role = (req.user.role || "").toLowerCase();
         const orderId = req.params.id;
+
+        // Validate ObjectId
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
 
         let order;
         if (role === "staff" || role === "admin") {

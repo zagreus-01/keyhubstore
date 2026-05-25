@@ -16,6 +16,7 @@ import ForgotPasswordPage from "./page/ForgotPasswordPage";
 import ResetPasswordPage from "./page/ResetPasswordPage";
 import ProfilePage from "./page/ProfilePage";
 import OrdersPage from "./page/OrdersPage";
+import OrderDetailPage from "./page/OrderDetailPage";
 import AdminDashboardPage from "./page/AdminDashboardPage";
 import AdminOrdersPage from "./page/AdminOrdersPage";
 import AdminProductPage from "./page/AdminProductPage";
@@ -24,6 +25,8 @@ import AdminBrandPage from "./page/AdminBrandPage";
 import AdminCouponPage from "./page/AdminCouponPage";
 import UserManagementPage from "./page/UserManagementPage";
 import NotFoundPage from "./page/NotFoundPage";
+import PaymentSuccessPage from "./page/PaymentSuccessPage";
+import PaymentFailedPage from "./page/PaymentFailedPage";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import "./index.css";
 import "./App.css";
@@ -48,6 +51,7 @@ function App() {
               <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+              <Route path="/orders/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
               <Route
                 path="/admin/dashboard"
                 element={
@@ -123,6 +127,8 @@ function App() {
               <Route path="/forgot-password" element={<GuestGuard><ForgotPasswordPage /></GuestGuard>} />
               <Route path="/verify" element={<VerifyEmailPage />} />
               <Route path="/reset-password" element={<GuestGuard><ResetPasswordPage /></GuestGuard>} />
+              <Route path="/payment-success" element={<PaymentSuccessPage />} />
+              <Route path="/payment-failed" element={<PaymentFailedPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </DefaultLayout>

@@ -11,6 +11,7 @@ const {
     getOrderDetail,
     cancelOrder,
     updateOrderStatus,
+    confirmDelivery,
     getAllOrders,
     getOrderQr
 } = require("../controllers/payment/order.controller");
@@ -77,4 +78,10 @@ router.put(
     updateOrderStatus
 );
 
+router.put(
+    "/:id/confirm-delivered",
+    verifyToken,
+    checkRole("customer"),
+    confirmDelivery
+);
 module.exports = router;

@@ -6,9 +6,9 @@ const { Title } = Typography;
 
 const statusColors = {
   pending: "orange",
-  processing: "blue",
+  preparing: "blue",
   shipping: "cyan",
-  completed: "green",
+  delivered: "green",
   cancelled: "red",
   unknown: "default"
 };

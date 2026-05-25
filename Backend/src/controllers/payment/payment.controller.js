@@ -1,5 +1,9 @@
+const mongoose = require("mongoose");
 const paymentService =
 require("../../services/payment/payment.service");
+
+// Helper function to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 
 // =========================
@@ -11,11 +15,20 @@ const createVNPayPayment = async (
 ) => {
 
     try {
+        const orderId = req.body.orderId;
+
+        // Validate ObjectId
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
 
         const paymentUrl =
             await paymentService
             .createVNPayPayment(
-                req.body.orderId,
+                orderId,
                 req.ip
             );
 
@@ -46,17 +59,17 @@ const vnpayReturn = async (
 
     try {
 
-        await paymentService
+        const order = await paymentService
             .vnpayReturn(req.query);
 
         return res.redirect(
-            "http://localhost:5173/payment-success"
+            `http://localhost:5173/payment-success?orderId=${order._id}`
         );
 
     } catch (error) {
 
         return res.redirect(
-            "http://localhost:5173/payment-failed"
+            `http://localhost:5173/payment-failed?message=${encodeURIComponent(error.message)}`
         );
 
     }
@@ -73,11 +86,20 @@ const createCODPayment = async (
 ) => {
 
     try {
+        const orderId = req.body.orderId;
+
+        // Validate ObjectId
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
 
         const result =
             await paymentService
             .createCODPayment(
-                req.body.orderId
+                orderId
             );
 
         return res.status(200).json({

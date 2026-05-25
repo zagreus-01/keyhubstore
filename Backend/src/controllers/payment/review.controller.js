@@ -1,5 +1,9 @@
+const mongoose = require("mongoose");
 const reviewService =
 require("../../services/payment/review.service");
+
+// Helper function to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 
 // =========================
@@ -11,6 +15,15 @@ const createReview = async (
 ) => {
 
     try {
+        const orderId = req.body.orderId;
+
+        // Validate ObjectId
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
 
         const review =
             await reviewService

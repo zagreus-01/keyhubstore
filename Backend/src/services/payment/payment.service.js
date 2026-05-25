@@ -1,9 +1,13 @@
 const crypto = require("crypto");
 const qs = require("qs");
 const moment = require("moment");
+const mongoose = require("mongoose");
 
 const Order = require("../../models/order.model");
 const Payment = require("../../models/payment.model");
+
+// Helper function to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 
 // =========================
@@ -14,7 +18,7 @@ const sortObject = (obj) => {
     let str = [];
     let key;
     for (key in obj) {
-        if (obj.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
             str.push(encodeURIComponent(key));
         }
     }
@@ -33,6 +37,10 @@ const createVNPayPayment = async (
     orderId,
     ipAddr
 ) => {
+
+    if (!isValidObjectId(orderId)) {
+        throw new Error("Invalid order ID format");
+    }
 
     const order = await Order.findById(orderId);
 
@@ -86,7 +94,7 @@ const createVNPayPayment = async (
         vnp_TxnRef: txnRef,
 
         vnp_OrderInfo:
-            `Thanh toan don hang ${order._id}`,
+            order._id.toString(),
 
         vnp_OrderType: "other",
 
@@ -187,8 +195,16 @@ const vnpayReturn = async (query) => {
     const amount =
         query.vnp_Amount / 100;
 
+    // Decode orderInfo to handle URL encoding (+ for spaces)
+    const decodedOrderInfo = decodeURIComponent(orderInfo);
+    
     const orderId =
-        orderInfo.split(" ").pop();
+        query.vnp_OrderInfo;
+
+    // Validate ObjectId
+    if (!isValidObjectId(orderId)) {
+        throw new Error("Invalid order ID format");
+    }
 
     const order =
         await Order.findById(orderId);
@@ -244,6 +260,10 @@ const vnpayReturn = async (query) => {
 const createCODPayment = async (
     orderId
 ) => {
+
+    if (!isValidObjectId(orderId)) {
+        throw new Error("Invalid order ID format");
+    }
 
     const order = await Order.findById(orderId);
 

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Review =
 require("../../models/review.model");
 
@@ -9,6 +10,9 @@ require("../../models/product.model");
 
 const ProductVariant =
 require("../../models/productVariant.model");
+
+// Helper function to validate ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 
 // =========================
@@ -25,6 +29,15 @@ const createReview = async (
         rating,
         comment
     } = data;
+
+    // Validate ObjectIds
+    if (!isValidObjectId(orderId)) {
+        throw new Error("Invalid order ID format");
+    }
+
+    if (!isValidObjectId(productId)) {
+        throw new Error("Invalid product ID format");
+    }
 
     // check order
     const order = await Order.findOne({

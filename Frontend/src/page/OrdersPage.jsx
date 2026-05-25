@@ -8,9 +8,9 @@ const { Title, Text } = Typography;
 
 const statusColor = {
   pending: "orange",
-  processing: "blue",
+  preparing: "blue",
   shipping: "cyan",
-  completed: "green",
+  delivered: "green",
   cancelled: "red"
 };
 
@@ -104,7 +104,8 @@ export default function OrdersPage() {
                 )}
               />
               <Button style={{ marginTop: 16 }} type="default" onClick={() => navigate(`/products`)}>Continue shopping</Button>
-                  {order.orderStatus !== "completed" && order.orderStatus !== "cancelled" && (
+              <Button style={{ marginTop: 16, marginLeft: 8 }} type="primary" onClick={() => navigate(`/orders/${order._id}`)}>View details</Button>
+                  {order.orderStatus !== "delivered" && order.orderStatus !== "cancelled" && (
                     <Button style={{ marginTop: 16, marginLeft: 8 }} danger onClick={async () => {
                       try {
                         await api.put(`/order/${order._id}/cancel`);
