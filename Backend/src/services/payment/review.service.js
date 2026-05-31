@@ -8,8 +8,17 @@ require("../../models/order.model");
 const Product =
 require("../../models/product.model");
 
+const Coupon =
+require("../../models/coupon.model");
+
 const ProductVariant =
 require("../../models/productVariant.model");
+
+const User =
+require("../../models/user.model");
+
+const REVIEW_REWARD_POINTS = 20;
+const REVIEW_REWARD_DISCOUNT_PERCENT = 5;
 
 // Helper function to validate ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -23,8 +32,9 @@ const createReview = async (
     data
 ) => {
 
-    const {
+    let {
         productId,
+        variantId,
         orderId,
         rating,
         comment
@@ -33,6 +43,11 @@ const createReview = async (
     // Validate ObjectIds
     if (!isValidObjectId(orderId)) {
         throw new Error("Invalid order ID format");
+    }
+
+    if (!productId && variantId && isValidObjectId(variantId)) {
+        const variant = await ProductVariant.findById(variantId);
+        productId = variant?.productId?.toString();
     }
 
     if (!isValidObjectId(productId)) {
@@ -53,9 +68,9 @@ const createReview = async (
 
     }
 
-    // only completed order
+    // only delivered order
     if (
-        order.orderStatus !== "completed"
+        order.orderStatus !== "delivered"
     ) {
 
         throw new Error(
@@ -128,12 +143,39 @@ const createReview = async (
 
         });
 
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const rewardCode =
+        `RV${String(userId).slice(-4).toUpperCase()}${String(review._id).slice(-6).toUpperCase()}`;
+
+    const rewardCoupon = await Coupon.create({
+        code: rewardCode,
+        discountType: "percent",
+        discountValue: REVIEW_REWARD_DISCOUNT_PERCENT,
+        applyTo: ["all"],
+        ownerUserId: userId,
+        source: "review_reward",
+        startAt: new Date(),
+        expiredAt: expiresAt
+    });
+
+    await User.findByIdAndUpdate(userId, {
+        $inc: {
+            loyaltyPoints: REVIEW_REWARD_POINTS
+        }
+    });
+
     // update product rating
     await updateProductRating(
         productId
     );
 
-    return review;
+    return {
+        review,
+        reward: {
+            points: REVIEW_REWARD_POINTS,
+            coupon: rewardCoupon
+        }
+    };
 
 };
 

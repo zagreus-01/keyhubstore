@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 
 const Order = require("../../models/order.model");
 const Payment = require("../../models/payment.model");
+const orderService = require("./order.service");
 
 // Helper function to validate ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -35,17 +36,29 @@ const sortObject = (obj) => {
 // =========================
 const createVNPayPayment = async (
     orderId,
-    ipAddr
+    ipAddr,
+    userId
 ) => {
 
     if (!isValidObjectId(orderId)) {
         throw new Error("Invalid order ID format");
     }
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findOne({
+        _id: orderId,
+        userId
+    });
 
     if (!order) {
         throw new Error("Order not found");
+    }
+
+    if (order.paymentMethod !== "VNPAY") {
+        throw new Error("Order is not a VNPAY order");
+    }
+
+    if (order.orderStatus === "cancelled") {
+        throw new Error("Cannot pay a cancelled order");
     }
 
     if (order.paymentStatus === "paid") {
@@ -78,6 +91,10 @@ const createVNPayPayment = async (
         order.finalAmount != null
             ? order.finalAmount
             : order.totalAmount;
+
+    if (!paymentAmount || paymentAmount <= 0) {
+        throw new Error("Invalid payment amount");
+    }
 
     let vnp_Params = {
 
@@ -196,10 +213,8 @@ const vnpayReturn = async (query) => {
         query.vnp_Amount / 100;
 
     // Decode orderInfo to handle URL encoding (+ for spaces)
-    const decodedOrderInfo = decodeURIComponent(orderInfo);
-    
     const orderId =
-        query.vnp_OrderInfo;
+        decodeURIComponent(orderInfo);
 
     // Validate ObjectId
     if (!isValidObjectId(orderId)) {
@@ -213,21 +228,45 @@ const vnpayReturn = async (query) => {
         throw new Error("Order not found");
     }
 
+    const expectedAmount =
+        order.finalAmount != null
+            ? order.finalAmount
+            : order.totalAmount;
+
+    if (amount !== expectedAmount) {
+        await orderService.failOnlinePayment(order._id);
+        await Payment.create({
+            orderId: order._id,
+            transactionCode,
+            paymentMethod: "VNPAY",
+            paymentStatus: "failed",
+            amount
+        });
+
+        throw new Error("Invalid payment amount");
+    }
+
     let paymentStatus = "failed";
 
     if (responseCode === "00") {
+        try {
+            await orderService.completeOnlinePayment(order._id);
+            paymentStatus = "paid";
+        } catch (error) {
+            await orderService.failOnlinePayment(order._id);
+            await Payment.create({
+                orderId: order._id,
+                transactionCode,
+                paymentMethod: "VNPAY",
+                paymentStatus: "failed",
+                amount
+            });
 
-        paymentStatus = "paid";
-
-        order.paymentStatus = "paid";
-
+            throw error;
+        }
     } else {
-
-        order.paymentStatus = "failed";
-
+        await orderService.failOnlinePayment(order._id);
     }
-
-    await order.save();
 
     // create payment history
     await Payment.create({
@@ -249,7 +288,7 @@ const vnpayReturn = async (query) => {
 
     });
 
-    return order;
+    return Order.findById(order._id);
 
 };
 
@@ -258,17 +297,25 @@ const vnpayReturn = async (query) => {
 // CASH ON DELIVERY
 // =========================
 const createCODPayment = async (
-    orderId
+    orderId,
+    userId
 ) => {
 
     if (!isValidObjectId(orderId)) {
         throw new Error("Invalid order ID format");
     }
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findOne({
+        _id: orderId,
+        userId
+    });
 
     if (!order) {
         throw new Error("Order not found");
+    }
+
+    if (order.paymentMethod !== "COD") {
+        throw new Error("Order is not a COD order");
     }
 
     const paymentAmount =
@@ -299,11 +346,26 @@ const createCODPayment = async (
 // GET PAYMENT BY ORDER
 // =========================
 const getPaymentByOrder = async (
-    orderId
+    orderId,
+    userId,
+    role
 ) => {
+    const orderFilter = {
+        _id: orderId
+    };
+
+    if (!["staff", "admin"].includes(String(role || "").toLowerCase())) {
+        orderFilter.userId = userId;
+    }
+
+    const order = await Order.findOne(orderFilter);
+
+    if (!order) {
+        throw new Error("Order not found");
+    }
 
     return await Payment.findOne({
-        orderId
+        orderId: order._id
     });
 
 };

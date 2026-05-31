@@ -1,6 +1,18 @@
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+
+const UPLOAD_ROOT = path.join(__dirname, "..", "..", "uploads");
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const IMAGE_UPLOAD_FOLDERS = {
+  avatar: "avatars",
+  avatars: "avatars",
+  label: "label",
+  product: "product",
+  "product-image": "product",
+  images: "product"
+};
 
 const ensureDirectoryExists = (directory) => {
   if (!fs.existsSync(directory)) {
@@ -10,53 +22,17 @@ const ensureDirectoryExists = (directory) => {
   }
 };
 
+const resolveUploadFolder = (req, file) => {
+  const routePath = req.route?.path || "";
+  const routeType = routePath.replace("/", "");
+  const uploadType = req.params.type || file.fieldname || routeType;
+
+  return IMAGE_UPLOAD_FOLDERS[uploadType] || "others";
+};
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const routePath = req.route?.path || "";
-    const uploadType =
-      req.params.type ||
-      file.fieldname ||
-      "";
-
-    const basePath = path.join(
-      __dirname,
-      "..",
-      "..",
-      "uploads"
-    );
-
-    let subFolder = "others";
-
-    // AVATAR
-    if (
-      routePath === "/avatar" ||
-      uploadType === "avatar"
-    ) {
-      subFolder = "avatars";
-    }
-
-    // LABEL / HERO SLIDER
-    else if (
-      routePath === "/label" ||
-      uploadType === "label"
-    ) {
-      subFolder = "label";
-    }
-
-    // PRODUCT
-    else if (
-      routePath === "/product" ||
-      uploadType === "product" ||
-      uploadType === "product-image" ||
-      uploadType === "images"
-    ) {
-      subFolder = "product";
-    }
-
-    const finalPath = path.join(
-      basePath,
-      subFolder
-    );
+    const finalPath = path.join(UPLOAD_ROOT, resolveUploadFolder(req, file));
 
     ensureDirectoryExists(finalPath);
 
@@ -65,14 +41,8 @@ const storage = multer.diskStorage({
 
   filename: (req, file, cb) => {
     const timestamp = Date.now();
-
-    const random = Math.round(
-      Math.random() * 1e9
-    );
-
-    const extension =
-      path.extname(file.originalname) ||
-      ".jpg";
+    const random = crypto.randomBytes(8).toString("hex");
+    const extension = path.extname(file.originalname).toLowerCase() || ".jpg";
 
     cb(
       null,
@@ -85,7 +55,7 @@ const upload = multer({
   storage,
 
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: MAX_IMAGE_SIZE,
   },
 
   fileFilter: (req, file, cb) => {

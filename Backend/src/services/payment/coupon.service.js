@@ -4,12 +4,19 @@ const getAllCoupons = async () => {
     return Coupon.find().sort({ createdAt: -1 });
 };
 
-const getActiveCoupons = async () => {
+const getActiveCoupons = async (userId = null) => {
     const now = new Date();
     return Coupon.find({
         $and: [
             { $or: [{ startAt: { $exists: false } }, { startAt: null }, { startAt: { $lte: now } }] },
-            { $or: [{ expiredAt: { $exists: false } }, { expiredAt: null }, { expiredAt: { $gte: now } }] }
+            { $or: [{ expiredAt: { $exists: false } }, { expiredAt: null }, { expiredAt: { $gte: now } }] },
+            {
+                $or: [
+                    { ownerUserId: { $exists: false } },
+                    { ownerUserId: null },
+                    { ownerUserId: userId }
+                ]
+            }
         ]
     }).sort({ createdAt: -1 });
 };
@@ -24,6 +31,8 @@ const normalizeCouponPayload = (payload) => {
         discountType: payload.discountType || "percent",
         discountValue: payload.discountValue != null ? Number(payload.discountValue) : 0,
         applyTo: payload.applyTo || "all",
+        ownerUserId: payload.ownerUserId || null,
+        source: payload.source || "admin",
     };
 
     if (normalized.discountType === "percent" && normalized.discountValue > 100) {
@@ -56,7 +65,7 @@ const normalizeCouponPayload = (payload) => {
     return normalized;
 };
 
-const validateCoupon = async (code) => {
+const validateCoupon = async (code, userId = null) => {
     if (!code) {
         throw new Error("Coupon code is required");
     }
@@ -76,6 +85,10 @@ const validateCoupon = async (code) => {
 
     if (coupon.expiredAt && coupon.expiredAt < now) {
         throw new Error("Coupon has expired");
+    }
+
+    if (coupon.ownerUserId && String(coupon.ownerUserId) !== String(userId)) {
+        throw new Error("Coupon is not available for this user");
     }
 
     return coupon;

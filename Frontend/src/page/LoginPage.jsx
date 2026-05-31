@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button, Card, Form, Input, Typography, notification } from "antd";
 import api, { getErrorMessage } from "../util/api";
-import { useAuth } from "../components/context/AuthContext";
+import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
 

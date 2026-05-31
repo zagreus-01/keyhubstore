@@ -71,5 +71,7 @@ const productVariantSchema = new mongoose.Schema(
 productVariantSchema.index({
     productId: 1
 });
+productVariantSchema.index({ productId: 1, status: 1, price: 1 });
+productVariantSchema.index({ status: 1, stock: 1 });
 
 module.exports = mongoose.model("ProductVariant", productVariantSchema);

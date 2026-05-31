@@ -108,5 +108,9 @@ productSchema.index({
     productName: "text",
     description: "text"
 });
+productSchema.index({ isDeleted: 1, status: 1, createdAt: -1 });
+productSchema.index({ isDeleted: 1, status: 1, categoryId: 1, brandId: 1 });
+productSchema.index({ isDeleted: 1, status: 1, sold: -1, averageRating: -1 });
+productSchema.index({ isDeleted: 1, status: 1, views: -1 });
 
 module.exports = mongoose.model("Product", productSchema);

@@ -18,7 +18,7 @@ const getAllCoupons = async (req, res) => {
 
 const getActiveCoupons = async (req, res) => {
     try {
-        const data = await couponService.getActiveCoupons();
+        const data = await couponService.getActiveCoupons(req.user.id);
 
         return res.status(200).json({
             success: true,
@@ -59,7 +59,7 @@ const getCouponById = async (req, res) => {
 const validateCoupon = async (req, res) => {
     try {
         const { code } = req.params;
-        const coupon = await couponService.validateCoupon(code);
+        const coupon = await couponService.validateCoupon(code, req.user.id);
         // Trả về thông tin coupon áp dụng cho đối tượng nào
         const data = {
             code: coupon.code,
@@ -68,6 +68,7 @@ const validateCoupon = async (req, res) => {
             applyTo: coupon.applyTo,
             targetId: coupon.targetId,
             targetName: coupon.targetName,
+            ownerUserId: coupon.ownerUserId,
             startAt: coupon.startAt,
             expiredAt: coupon.expiredAt
         };

@@ -1,4 +1,4 @@
-import axios from "axios";
+ import axios from "axios";
 import { notification } from "antd";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
@@ -9,6 +9,8 @@ const api = axios.create({
     "Content-Type": "application/json"
   }
 });
+
+let refreshPromise = null;
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("keyhub_token");
@@ -21,11 +23,50 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error?.response?.status;
-    if (status === 401) {
+    const originalRequest = error?.config;
+    const requestUrl = originalRequest?.url || "";
+    const shouldSkipRefresh = originalRequest?._skipAuthRefresh || requestUrl.includes("/auth/refresh-token");
+
+    // Attempt token refresh when receiving 401 and a refresh token exists
+    if (status === 401 && originalRequest && !originalRequest._retry && !shouldSkipRefresh) {
+      const refreshToken = localStorage.getItem("keyhub_refresh");
+      if (refreshToken) {
+        try {
+          originalRequest._retry = true;
+          if (!refreshPromise) {
+            refreshPromise = axios
+              .post(`${BACKEND_URL}/api/auth/refresh-token`, { refreshToken }, { _skipAuthRefresh: true })
+              .finally(() => {
+                refreshPromise = null;
+              });
+          }
+
+          const resp = await refreshPromise;
+          const newAccessToken = resp.data.data.accessToken;
+          if (newAccessToken) {
+            localStorage.setItem("keyhub_token", newAccessToken);
+            // notify other parts of the app that token was refreshed
+            try {
+              window.dispatchEvent(new CustomEvent("keyhub_token_refreshed", { detail: { token: newAccessToken } }));
+            } catch {
+              // ignore in non-browser environments
+            }
+            // update Authorization header and retry original request
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            return axios(originalRequest);
+          }
+        } catch {
+          // fall through to logout
+        }
+      }
+
+      // no valid refresh -> force logout
       localStorage.removeItem("keyhub_token");
       localStorage.removeItem("keyhub_user");
+      localStorage.removeItem("keyhub_refresh");
       window.location.href = "/login";
     }
 

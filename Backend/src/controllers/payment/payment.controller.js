@@ -29,7 +29,8 @@ const createVNPayPayment = async (
             await paymentService
             .createVNPayPayment(
                 orderId,
-                req.ip
+                req.ip,
+                req.user.id
             );
 
         return res.status(200).json({
@@ -99,7 +100,8 @@ const createCODPayment = async (
         const result =
             await paymentService
             .createCODPayment(
-                orderId
+                orderId,
+                req.user.id
             );
 
         return res.status(200).json({
@@ -132,7 +134,9 @@ const getPaymentByOrder = async (
         const payment =
             await paymentService
             .getPaymentByOrder(
-                req.params.orderId
+                req.params.orderId,
+                req.user.id,
+                req.user.role
             );
 
         return res.status(200).json({
@@ -157,7 +161,7 @@ const getPaymentByOrder = async (
 // =========================
 const getOrderQR = async (req, res) => {
   try {
-    const qrUrl = await paymentService.createVNPayPayment(req.params.orderId, req.ip);
+    const qrUrl = await paymentService.createVNPayPayment(req.params.orderId, req.ip, req.user.id);
     return res.json({ qrPayload: qrUrl });
   } catch (error) {
     return res.status(500).json({ message: error.message });

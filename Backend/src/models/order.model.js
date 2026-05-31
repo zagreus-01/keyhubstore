@@ -17,7 +17,22 @@ const orderItemSchema = new mongoose.Schema({
 
     originalPrice: Number,
 
-    finalPrice: Number
+    finalPrice: Number,
+
+    productId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product"
+    },
+
+    categoryId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Category"
+    },
+
+    brandId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Brand"
+    }
 
 });
 
@@ -48,6 +63,14 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    pointsUsed: {
+        type: Number,
+        default: 0
+    },
+    pointsDiscount: {
+        type: Number,
+        default: 0
+    },
     finalAmount: Number,
 
     shippingAddress: {
@@ -72,6 +95,16 @@ const orderSchema = new mongoose.Schema({
         default: "pending"
     },
 
+    stockDeducted: {
+        type: Boolean,
+        default: false
+    },
+
+    soldCounted: {
+        type: Boolean,
+        default: false
+    },
+
     orderStatus: {
         type: String,
         enum: [
@@ -89,5 +122,10 @@ const orderSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ orderStatus: 1, createdAt: -1 });
+orderSchema.index({ paymentStatus: 1, paymentMethod: 1, createdAt: -1 });
+orderSchema.index({ "items.variantId": 1, orderStatus: 1 });
 
 module.exports = mongoose.model("Order", orderSchema);

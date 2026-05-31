@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Badge, Button, Input, Layout, Menu, Space, Avatar, Dropdown } from "antd";
 import { DashboardOutlined, ShoppingCartOutlined, HeartOutlined, ShopOutlined, HomeOutlined } from "@ant-design/icons";
 import api from "../../util/api";
-import { useAuth } from "../context/AuthContext";
+import useAuth from "../context/useAuth";
 
 const { Header } = Layout;
 

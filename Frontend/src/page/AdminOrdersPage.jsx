@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { Button, Card, Input, Select, Space, Table, Tag, Typography, notification, Spin } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { Button, Card, Input, Select, Space, Spin, Table, Tag, Typography, notification } from "antd";
 import api, { getErrorMessage } from "../util/api";
 
 const { Title, Text } = Typography;
@@ -7,15 +7,38 @@ const { Option } = Select;
 
 const statusColor = {
   pending: "orange",
+  confirmed: "lime",
   preparing: "blue",
   shipping: "cyan",
   delivered: "green",
-  cancelled: "red",
-  confirmed: "lime",
-  preparing: "gold",
-  delivered: "purple",
-  cancel_requested: "volcano"
+  cancel_requested: "volcano",
+  cancelled: "red"
 };
+
+const statusLabel = {
+  pending: "Don hang moi",
+  confirmed: "Da xac nhan",
+  preparing: "Dang chuan bi hang",
+  shipping: "Dang giao hang",
+  delivered: "Da giao thanh cong",
+  cancel_requested: "Yeu cau huy don",
+  cancelled: "Da huy"
+};
+
+const nextStatusOptions = {
+  pending: ["confirmed", "cancelled"],
+  confirmed: ["preparing", "cancelled"],
+  preparing: ["shipping", "cancelled"],
+  cancel_requested: ["preparing", "cancelled"],
+  shipping: ["delivered"],
+  delivered: [],
+  cancelled: []
+};
+
+const getStatusOptions = (status) => [
+  status,
+  ...(nextStatusOptions[status] || [])
+].filter(Boolean);
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -23,23 +46,13 @@ export default function AdminOrdersPage() {
   const [updatingId, setUpdatingId] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState("");
 
-  const statuses = useMemo(() => [
-    "pending",
-    "confirmed",
-    "preparing",
-    "shipping",
-    "delivered",
-    "cancel_requested",
-    "cancelled"
-  ], []);
-
   const fetchOrders = async () => {
     setLoading(true);
     try {
       const res = await api.get("/order");
       setOrders(res.data.data || []);
     } catch (err) {
-      notification.error({ message: "Không thể tải đơn hàng", description: getErrorMessage(err) });
+      notification.error({ message: "Khong the tai don hang", description: getErrorMessage(err) });
     } finally {
       setLoading(false);
     }
@@ -53,10 +66,23 @@ export default function AdminOrdersPage() {
     setUpdatingId(orderId);
     try {
       await api.put(`/order/${orderId}/status`, { status });
-      notification.success({ message: "Cập nhật trạng thái thành công" });
+      notification.success({ message: "Cap nhat trang thai thanh cong" });
       await fetchOrders();
     } catch (err) {
-      notification.error({ message: "Không thể cập nhật trạng thái", description: getErrorMessage(err) });
+      notification.error({ message: "Khong the cap nhat trang thai", description: getErrorMessage(err) });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleUpdatePaymentStatus = async (orderId) => {
+    setUpdatingId(orderId);
+    try {
+      await api.put(`/order/${orderId}/payment-status-cod`);
+      notification.success({ message: "Cap nhat thanh toan thanh cong" });
+      await fetchOrders();
+    } catch (err) {
+      notification.error({ message: "Khong the cap nhat thanh toan", description: getErrorMessage(err) });
     } finally {
       setUpdatingId(null);
     }
@@ -105,16 +131,26 @@ export default function AdminOrdersPage() {
       title: "Status",
       dataIndex: "orderStatus",
       key: "status",
-      render: (status, record) => (
-        <Space align="center">
-          <Tag color={statusColor[status] || "default"}>{status}</Tag>
-          <Select value={status} onChange={(value) => handleChangeStatus(record._id, value)} loading={updatingId === record._id} style={{ minWidth: 140 }}>
-            {statuses.map((s) => (
-              <Option key={s} value={s}>{s}</Option>
-            ))}
-          </Select>
-        </Space>
-      )
+      render: (status, record) => {
+        const statusOptions = getStatusOptions(status);
+
+        return (
+          <Space align="center">
+            <Tag color={statusColor[status] || "default"}>{statusLabel[status] || status}</Tag>
+            <Select
+              value={status}
+              onChange={(value) => handleChangeStatus(record._id, value)}
+              loading={updatingId === record._id}
+              disabled={statusOptions.length <= 1}
+              style={{ minWidth: 180 }}
+            >
+              {statusOptions.map((s) => (
+                <Option key={s} value={s}>{statusLabel[s] || s}</Option>
+              ))}
+            </Select>
+          </Space>
+        );
+      }
     },
     {
       title: "Payment",
@@ -125,6 +161,11 @@ export default function AdminOrdersPage() {
           <Text strong>{pm}</Text>
           <br />
           <Text type="secondary">{record.paymentStatus}</Text>
+          {pm === "COD" && record.paymentStatus === "pending" && (
+            <div style={{ marginTop: 8 }}>
+              <Button size="small" type="primary" ghost loading={updatingId === record._id} onClick={() => handleUpdatePaymentStatus(record._id)}>Mark as Paid</Button>
+            </div>
+          )}
         </div>
       )
     },
@@ -146,7 +187,7 @@ export default function AdminOrdersPage() {
       render: (_, record) => (
         <Space>
           <Button onClick={() => window.open(`/orders/${record._id}`, "_blank")}>View</Button>
-          <Button type="primary" onClick={() => handleChangeStatus(record._id, 'delivered')} disabled={record.orderStatus === 'delivered' || record.orderStatus === 'cancelled'} loading={updatingId === record._id}>
+          <Button type="primary" onClick={() => handleChangeStatus(record._id, "delivered")} disabled={record.orderStatus !== "shipping"} loading={updatingId === record._id}>
             Complete
           </Button>
         </Space>
@@ -156,10 +197,10 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="page-admin-orders">
-      <Title level={2}>Orders Management (Staff)</Title>
+      <Title level={2}>Orders Management</Title>
 
       <Card className="admin-info-card">
-        <Text type="secondary">View all orders and update order statuses.</Text>
+        <Text type="secondary">Staff and admin can view all orders and update order statuses.</Text>
       </Card>
 
       <div className="page-title-row" style={{ marginTop: 24, gap: 12, alignItems: "center" }}>

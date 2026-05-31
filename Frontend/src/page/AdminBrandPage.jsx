@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, Form, Input, Modal, Space, Table, Typography, notification, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
 
@@ -13,7 +13,7 @@ export default function AdminBrandPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [form] = Form.useForm();
 
-  const fetchBrands = async () => {
+  const fetchBrands = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get("/brand");
@@ -26,17 +26,17 @@ export default function AdminBrandPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchBrands();
-  }, []);
+  }, [fetchBrands]);
 
-  const openModal = (brand = null) => {
+  const openModal = useCallback((brand = null) => {
     setCurrentBrand(brand);
     setModalOpen(true);
     form.setFieldsValue({ brandName: brand?.brandName || "" });
-  };
+  }, [form]);
 
   const closeModal = () => {
     setModalOpen(false);
@@ -66,7 +66,7 @@ export default function AdminBrandPage() {
     }
   };
 
-  const handleDelete = async (brand) => {
+  const handleDelete = useCallback(async (brand) => {
     try {
       await api.delete(`/brand/${brand._id}`);
       notification.success({ message: "Xóa thương hiệu thành công" });
@@ -77,7 +77,7 @@ export default function AdminBrandPage() {
         description: getErrorMessage(error)
       });
     }
-  };
+  }, [fetchBrands]);
 
   const filteredBrands = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
@@ -115,7 +115,7 @@ export default function AdminBrandPage() {
         )
       }
     ],
-    []
+    [handleDelete, openModal]
   );
 
   return (

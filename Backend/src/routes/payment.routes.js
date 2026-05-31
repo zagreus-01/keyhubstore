@@ -46,7 +46,12 @@ router.get(
     vnpayReturn
 );
 
-router.get('/order/:orderId/qr', getOrderQR);
+router.get(
+    "/order/:orderId/qr",
+    verifyToken,
+    checkRole("customer"),
+    getOrderQR
+);
 
 
 module.exports = router;

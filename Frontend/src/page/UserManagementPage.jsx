@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Badge, Button, Card, Input, Popconfirm, Select, Space, Table, Tag, Typography, notification, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
-import { useAuth } from "../components/context/AuthContext";
+import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

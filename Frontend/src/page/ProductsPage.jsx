@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Card, Col, Divider, Empty, Input, Row, Select, Skeleton, Typography } from "antd";
-import api from "../util/api";
-import ProductCard from "../components/common/ProductCard";
+import { useSearchParams } from "react-router-dom";
+import { Button, Card, Col, Divider, Input, Row, Select, Skeleton, Typography, notification } from "antd";
+import api, { getErrorMessage } from "../util/api";
+import ProductGrid, { ProductGridSkeleton } from "../components/common/ProductGrid";
+import { PageEmpty } from "../components/common/PageState";
 
 const { Title } = Typography;
 
@@ -23,18 +24,31 @@ export default function ProductsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const limit = 12;
-  const navigate = useNavigate();
+
+  const resetFilters = () => {
+    setKeyword("");
+    setCategoryId("");
+    setBrandId("");
+    setSearchParams({});
+  };
 
   useEffect(() => {
     const getFilters = async () => {
       try {
-        const [categoryRes, brandRes] = await Promise.all([api.get("/category"), api.get("/brand")]);
+        const [categoryRes, brandRes] = await Promise.all([
+          api.get("/category"),
+          api.get("/brand")
+        ]);
         setCategories(categoryRes.data.data);
         setBrands(brandRes.data.data);
       } catch (error) {
-        console.error(error);
+        notification.error({
+          message: "Could not load filters",
+          description: getErrorMessage(error)
+        });
       }
     };
+
     getFilters();
   }, []);
 
@@ -55,11 +69,15 @@ export default function ProductsPage() {
         setProducts(newProducts);
         setHasMore(newProducts.length >= limit);
       } catch (error) {
-        console.error(error);
+        notification.error({
+          message: "Could not load products",
+          description: getErrorMessage(error)
+        });
       } finally {
         setLoading(false);
       }
     };
+
     fetchInitialProducts();
   }, [keyword, categoryId, brandId, setSearchParams]);
 
@@ -73,18 +91,22 @@ export default function ProductsPage() {
         if (keyword) params.keyword = keyword;
         if (categoryId) params.categoryId = categoryId;
         if (brandId) params.brandId = brandId;
-        
+
         const query = new URLSearchParams({ ...params, page, limit }).toString();
         const response = await api.get(`/product?${query}`);
         const newProducts = response.data.data || [];
-        setProducts(prev => [...prev, ...newProducts]);
+        setProducts((prev) => [...prev, ...newProducts]);
         setHasMore(newProducts.length >= limit);
       } catch (error) {
-        console.error(error);
+        notification.error({
+          message: "Could not load more products",
+          description: getErrorMessage(error)
+        });
       } finally {
         setLoadingMore(false);
       }
     };
+
     fetchMoreProducts();
   }, [page, keyword, categoryId, brandId]);
 
@@ -92,7 +114,7 @@ export default function ProductsPage() {
     const handleScroll = () => {
       if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 200) {
         if (!loading && !loadingMore && hasMore) {
-          setPage(prev => prev + 1);
+          setPage((prev) => prev + 1);
         }
       }
     };
@@ -124,7 +146,13 @@ export default function ProductsPage() {
               placeholder="Category"
               onChange={(value) => setCategoryId(value)}
               style={{ width: "100%" }}
-              options={[...FILTER_OPTIONS, ...categories.map((category) => ({ value: category._id, label: category.categoryName || category.name }))]}
+              options={[
+                ...FILTER_OPTIONS,
+                ...categories.map((category) => ({
+                  value: category._id,
+                  label: category.categoryName || category.name
+                }))
+              ]}
             />
           </Col>
           <Col xs={24} sm={7} md={6}>
@@ -134,16 +162,17 @@ export default function ProductsPage() {
               placeholder="Brand"
               onChange={(value) => setBrandId(value)}
               style={{ width: "100%" }}
-              options={[...FILTER_OPTIONS, ...brands.map((brand) => ({ value: brand._id, label: brand.brandName || brand.name }))]}
+              options={[
+                ...FILTER_OPTIONS,
+                ...brands.map((brand) => ({
+                  value: brand._id,
+                  label: brand.brandName || brand.name
+                }))
+              ]}
             />
           </Col>
           <Col xs={24} sm={24} md={4}>
-            <Button type="default" block onClick={() => {
-              setKeyword("");
-              setCategoryId("");
-              setBrandId("");
-              setSearchParams({});
-            }}>
+            <Button type="default" block onClick={resetFilters}>
               Reset filters
             </Button>
           </Col>
@@ -153,31 +182,26 @@ export default function ProductsPage() {
       <Divider />
 
       {loading ? (
-        <Row gutter={[16, 16]}>
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Col key={index} xs={24} sm={12} md={6}><Skeleton active /><div style={{ height: 240 }} /></Col>
-          ))}
-        </Row>
+        <ProductGridSkeleton count={8} />
       ) : products.length ? (
         <>
-          <Row gutter={[16, 16]}>
-            {products.map((product) => (
-              <Col key={product._id} xs={24} sm={12} md={6}>
-                <ProductCard product={product} />
-              </Col>
-            ))}
-          </Row>
+          <ProductGrid products={products} />
           {loadingMore && (
-            <div style={{ textAlign: "center", marginTop: 20 }}>
+            <div className="load-more-state">
               <Skeleton.Button active size="large" shape="round" />
             </div>
           )}
           {!hasMore && products.length > 0 && (
-            <Divider plain>Hết sản phẩm</Divider>
+            <Divider plain>End of product list</Divider>
           )}
         </>
       ) : (
-        <Empty description="No products found" />
+        <PageEmpty
+          title="No products found"
+          description="Try a broader keyword, category, or brand."
+          actionLabel="Reset filters"
+          onAction={resetFilters}
+        />
       )}
     </div>
   );

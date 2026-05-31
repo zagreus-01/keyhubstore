@@ -8,6 +8,7 @@ import { Autoplay, Pagination, Navigation } from "swiper/modules";
 
 import "swiper/css";
 import "swiper/css/pagination";
+import "swiper/css/navigation";
 
 const { Title, Paragraph } = Typography;
 
@@ -32,9 +33,8 @@ const defaultHeroSlides = [
 
 export default function HomePage() {
   const [heroSlides, setHeroSlides] = useState(defaultHeroSlides);
-  const [products, setProducts] = useState([]);
-  const [topSelling, setTopSelling] = useState([]);
-  const [topViewed, setTopViewed] = useState([]);
+  const [bestSellers, setBestSellers] = useState([]);
+  const [mostViewed, setMostViewed] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +44,8 @@ export default function HomePage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [productRes, topSellingRes, topViewedRes, categoryRes, brandRes, labelRes] =
+        const [bestSellersRes, mostViewedRes, categoryRes, brandRes, labelRes] =
           await Promise.all([
-            api.get("/product?limit=8"),
             api.get("/product?sortBy=sold&limit=10"),
             api.get("/product?sortBy=views&limit=10"),
             api.get("/category"),
@@ -54,9 +53,8 @@ export default function HomePage() {
             api.get("/upload/label"),
           ]);
 
-        setProducts(productRes.data.data);
-        setTopSelling(topSellingRes.data.data || []);
-        setTopViewed(topViewedRes.data.data || []);
+        setBestSellers(bestSellersRes.data.data || []);
+        setMostViewed(mostViewedRes.data.data || []);
         setCategories(categoryRes.data.data);
         setBrands(brandRes.data.data);
 
@@ -82,224 +80,11 @@ export default function HomePage() {
 
   return (
     <>
-      {/* CSS INLINE */}
-      <style>
-  {`
-    /* FULL WIDTH */
-
-    .page-content {
-      padding: 0 !important;
-    }
-
-    .page-home {
-      width: 100%;
-      padding: 0;
-    }
-
-    /* HERO */
-
-    .hero-section {
-      width: 100%;
-      margin-bottom: 56px;
-    }
-
-    .hero-full-panel {
-      position: relative;
-      width: 100%;
-      height: 520px;
-
-      overflow: hidden;
-      border-radius: 0;
-    }
-
-    /* SWIPER */
-
-    .home-hero-swiper,
-    .home-hero-swiper .swiper,
-    .home-hero-swiper .swiper-wrapper,
-    .home-hero-swiper .swiper-slide {
-      width: 100%;
-      height: 100%;
-    }
-
-    .home-hero-swiper img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-    }
-
-    /* OVERLAY */
-
-    .hero-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 10;
-
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-
-      width: 100%;
-      padding: 0 120px;
-
-      background: linear-gradient(
-        to right,
-        rgba(0, 0, 0, 0.72),
-        rgba(0, 0, 0, 0.32),
-        transparent
-      );
-
-      color: white;
-    }
-
-    .hero-overlay .ant-typography {
-      color: white !important;
-    }
-
-    .hero-overlay h1 {
-      font-size: 82px !important;
-      font-weight: 800;
-      margin-bottom: 16px !important;
-      line-height: 1.1;
-    }
-
-    .hero-description {
-      max-width: 700px;
-      font-size: 24px;
-      line-height: 1.6;
-      margin-bottom: 32px !important;
-    }
-
-    .hero-actions .ant-btn {
-      height: 56px;
-      padding: 0 40px;
-      border-radius: 12px;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    /* CONTENT */
-
-    .home-section {
-      width: 100%;
-      padding: 0 80px;
-      margin-bottom: 64px;
-    }
-
-    .home-section h3 {
-      font-size: 34px !important;
-      margin-bottom: 28px !important;
-    }
-
-    /* FEATURE */
-
-    .home-bottom {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-
-      padding-bottom: 60px;
-    }
-
-    .feature-card {
-      border-radius: 20px;
-    }
-
-    /* SWIPER DOT */
-
-    .swiper-pagination-bullet {
-      background: white !important;
-      opacity: 0.7;
-      width: 10px;
-      height: 10px;
-    }
-
-    .swiper-pagination-bullet-active {
-      opacity: 1;
-    }
-
-    /* RESPONSIVE */
-
-    @media (max-width: 1200px) {
-      .hero-overlay {
-        padding: 0 80px;
-      }
-
-      .hero-overlay h1 {
-        font-size: 62px !important;
-      }
-
-      .hero-description {
-        font-size: 20px;
-      }
-    }
-
-    @media (max-width: 992px) {
-      .hero-full-panel {
-        height: 500px;
-      }
-
-      .hero-overlay {
-        padding: 0 48px;
-      }
-
-      .hero-overlay h1 {
-        font-size: 48px !important;
-      }
-
-      .hero-description {
-        font-size: 18px;
-      }
-
-      .home-section {
-        padding: 0 32px;
-      }
-
-      .home-bottom {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .hero-full-panel {
-        height: 360px;
-      }
-
-      .hero-overlay {
-        padding: 0 24px;
-      }
-
-      .hero-overlay h1 {
-        font-size: 34px !important;
-      }
-
-      .hero-description {
-        font-size: 15px;
-        max-width: 100%;
-      }
-
-      .hero-actions .ant-btn {
-        height: 46px;
-        padding: 0 28px;
-        font-size: 15px;
-      }
-
-      .home-section {
-        padding: 0 16px;
-      }
-
-      .home-section h3 {
-        font-size: 26px !important;
-      }
-    }
-  `}
-</style>
 
       <div className="page-home">
         {/* HERO */}
-        <section className="hero-section">
-          <div className="hero-image hero-full-panel">
+        <section className="hero-section w-full mb-14">
+          <div className="hero-image relative w-full overflow-hidden h-[360px] md:h-[500px] lg:h-[620px]">
             <Swiper
               modules={[Autoplay, Pagination]}
               pagination={{ clickable: true }}
@@ -308,13 +93,14 @@ export default function HomePage() {
                 disableOnInteraction: false,
               }}
               loop
-              className="home-hero-swiper"
+              className="absolute inset-0 h-full w-full"
             >
               {heroSlides.map((slide, index) => (
-                <SwiperSlide key={index}>
+                <SwiperSlide key={index} className="h-full w-full">
                   <img
                     src={slide.image}
                     alt="Keyhub label"
+                    className="h-full w-full object-cover object-center block"
                   />
                 </SwiperSlide>
               ))}
@@ -399,54 +185,25 @@ export default function HomePage() {
           </Row>
         </section>
 
-        {/* PRODUCTS */}
-        <section className="home-section">
-          <Title level={3}>Featured products</Title>
-
-          <Row gutter={[16, 16]}>
-            {loading ? (
-              Array.from({ length: 4 }).map(
-                (_, index) => (
-                  <Col
-                    key={index}
-                    xs={24}
-                    sm={12}
-                    md={6}
-                  >
-                    <Card>
-                      <Skeleton active />
-                    </Card>
-                  </Col>
-                )
-              )
-            ) : (
-              products.map((product) => (
-                <Col
-                  key={product._id}
-                  xs={24}
-                  sm={12}
-                  md={6}
-                >
-                  <ProductCard product={product} />
-                </Col>
-              ))
-            )}
-          </Row>
-        </section>
-
-        {/* TOP SELLING PRODUCTS */}
+        {/* BEST SELLERS */}
         <section className="home-section">
           <Title level={3}>Sản phẩm bán chạy nhất</Title>
+
           {loading ? (
             <Row gutter={[16, 16]}>
               {Array.from({ length: 4 }).map((_, index) => (
-                <Col key={index} xs={24} sm={12} md={6}><Card><Skeleton active /></Card></Col>
+                <Col key={index} xs={24} sm={12} md={6}>
+                  <Card>
+                    <Skeleton active />
+                  </Card>
+                </Col>
               ))}
             </Row>
           ) : (
             <Swiper
-              modules={[Autoplay, Pagination, Navigation]}
+              modules={[Pagination, Navigation]}
               navigation
+              pagination={{ clickable: true }}
               spaceBetween={16}
               slidesPerView={1}
               breakpoints={{
@@ -454,10 +211,9 @@ export default function HomePage() {
                 768: { slidesPerView: 3 },
                 992: { slidesPerView: 4 },
               }}
-              style={{ padding: "10px 0 40px" }}
-              pagination={{ clickable: true, dynamicBullets: true }}
+              className="storefront-product-swiper"
             >
-              {topSelling.map((product) => (
+              {bestSellers.map((product) => (
                 <SwiperSlide key={product._id}>
                   <ProductCard product={product} />
                 </SwiperSlide>
@@ -466,19 +222,25 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* MOST VIEWED PRODUCTS */}
+        {/* MOST VIEWED */}
         <section className="home-section">
           <Title level={3}>Sản phẩm xem nhiều nhất</Title>
+
           {loading ? (
             <Row gutter={[16, 16]}>
               {Array.from({ length: 4 }).map((_, index) => (
-                <Col key={index} xs={24} sm={12} md={6}><Card><Skeleton active /></Card></Col>
+                <Col key={index} xs={24} sm={12} md={6}>
+                  <Card>
+                    <Skeleton active />
+                  </Card>
+                </Col>
               ))}
             </Row>
           ) : (
             <Swiper
-              modules={[Autoplay, Pagination, Navigation]}
+              modules={[Pagination, Navigation]}
               navigation
+              pagination={{ clickable: true }}
               spaceBetween={16}
               slidesPerView={1}
               breakpoints={{
@@ -486,10 +248,9 @@ export default function HomePage() {
                 768: { slidesPerView: 3 },
                 992: { slidesPerView: 4 },
               }}
-              style={{ padding: "10px 0 40px" }}
-              pagination={{ clickable: true, dynamicBullets: true }}
+              className="storefront-product-swiper"
             >
-              {topViewed.map((product) => (
+              {mostViewed.map((product) => (
                 <SwiperSlide key={product._id}>
                   <ProductCard product={product} />
                 </SwiperSlide>

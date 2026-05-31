@@ -22,18 +22,34 @@ const refreshTokenService = async (
         );
     }
 
-    jwt.verify(
+    if (existingToken.expiredAt <= new Date()) {
+        await RefreshToken.deleteOne({
+            token: refreshToken
+        });
+
+        throw new Error(
+            "Refresh token expired"
+        );
+    }
+
+    const decoded = jwt.verify(
         refreshToken,
         process.env.JWT_REFRESH_SECRET
-    );
-
-    const decoded = jwt.decode(
-        refreshToken
     );
 
     const user = await User.findById(
         decoded.id
     );
+
+    if (!user || user.isDeleted || user.status === "blocked") {
+        await RefreshToken.deleteOne({
+            token: refreshToken
+        });
+
+        throw new Error(
+            "Invalid refresh token"
+        );
+    }
 
     const accessToken =
         generateAccessToken(user);

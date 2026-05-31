@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { Button, Card, Col, Divider, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag, Typography, Upload, notification, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
@@ -28,7 +28,7 @@ export default function AdminProductPage() {
 
   const [form] = Form.useForm();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [productRes, categoryRes, brandRes] = await Promise.all([
@@ -47,17 +47,17 @@ export default function AdminProductPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const getBackendUrl = (filePath) => {
+  const getBackendUrl = useCallback((filePath) => {
     if (!filePath) return null;
     if (filePath.startsWith("http")) return filePath;
     return `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/${filePath}`;
-  };
+  }, []);
 
   const filteredProducts = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
@@ -78,7 +78,7 @@ export default function AdminProductPage() {
     });
   }, [products, searchKeyword]);
 
-  const openProductModal = (product = null) => {
+  const openProductModal = useCallback((product = null) => {
     setCurrentProduct(product);
     setModalOpen(true);
     const existingImages = product?.images || [];
@@ -126,7 +126,7 @@ export default function AdminProductPage() {
         attributes: variant.attributes?.map((a) => `${a.key}:${a.value}`).join(", ") || ""
       })) || []
     });
-  };
+  }, [form, getBackendUrl]);
 
   const closeModal = () => {
     setModalOpen(false);
@@ -289,7 +289,7 @@ export default function AdminProductPage() {
     }
   };
 
-  const handleDelete = async (product) => {
+  const handleDelete = useCallback(async (product) => {
     try {
       await api.delete(`/product/${product._id}`);
       notification.success({ message: "Xóa sản phẩm thành công" });
@@ -300,7 +300,7 @@ export default function AdminProductPage() {
         description: getErrorMessage(error)
       });
     }
-  };
+  }, [fetchData]);
 
   const columns = useMemo(
     () => [
@@ -348,7 +348,7 @@ export default function AdminProductPage() {
         )
       }
     ],
-    []
+    [handleDelete, openProductModal]
   );
 
   return (

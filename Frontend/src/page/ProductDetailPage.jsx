@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Breadcrumb, Button, Card, Col, Image, InputNumber, notification, Row, Select, Space, Tag, Typography } from "antd";
-import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import { Breadcrumb, Button, Card, Col, Divider, Image, InputNumber, List, notification, Rate, Row, Select, Space, Tag, Typography } from "antd";
+import { HeartFilled, HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import api, { getBackendUrl, getErrorMessage } from "../util/api";
-import { useAuth } from "../components/context/AuthContext";
+import useAuth from "../components/context/useAuth";
+import ProductCard from "../components/common/ProductCard";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -16,20 +17,33 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const normalizedRole = String(user?.role || "").toLowerCase();
+  const isCustomer = normalizedRole === "customer";
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [, setSelectedImage] = useState(null);
   const [mainSwiper, setMainSwiper] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [similarProducts, setSimilarProducts] = useState([]);
+  const [viewedProducts, setViewedProducts] = useState([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await api.get(`/product/${id}`);
+        const [response, reviewRes, similarRes] = await Promise.all([
+          api.get(`/product/${id}`),
+          api.get(`/review/product/${id}`),
+          api.get(`/product/${id}/similar`, { params: { limit: 4 } })
+        ]);
         const data = response.data.data;
         setProduct(data);
         setSelectedVariant(data.variants?.[0] || null);
+        setReviews(reviewRes.data.data || []);
+        setSimilarProducts(similarRes.data.data || []);
       } catch (error) {
         console.error(error);
       } finally {
@@ -38,6 +52,22 @@ export default function ProductDetailPage() {
     };
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    const recordAndFetchViewed = async () => {
+      if (!isAuthenticated || !isCustomer || !id) return;
+
+      try {
+        await api.post(`/product/${id}/view`);
+        const response = await api.get("/product/viewed/me", { params: { limit: 6 } });
+        setViewedProducts((response.data.data || []).filter((item) => String(item._id) !== String(id)));
+      } catch {
+        setViewedProducts([]);
+      }
+    };
+
+    recordAndFetchViewed();
+  }, [id, isAuthenticated, isCustomer]);
 
   const productImageUrls = useMemo(() => {
     if (!product) return [];
@@ -93,13 +123,32 @@ export default function ProductDetailPage() {
     [product, selectedVariant]
   );
 
+  useEffect(() => {
+    const fetchWishlistStatus = async () => {
+      if (!isAuthenticated || !isCustomer || !activeVariant?._id) {
+        setIsInWishlist(false);
+        return;
+      }
+
+      try {
+        const response = await api.get("/wishlist");
+        const products = response.data.data?.products || [];
+        setIsInWishlist(products.some((item) => String(item?.selectedVariant?._id) === String(activeVariant._id)));
+      } catch {
+        setIsInWishlist(false);
+      }
+    };
+
+    fetchWishlistStatus();
+  }, [activeVariant?._id, isAuthenticated, isCustomer]);
+
   const handleAddToCart = async () => {
     if (!activeVariant) return;
     if (!isAuthenticated) {
       navigate("/login");
       return;
     }
-    if (user?.role !== "customer") {
+    if (!isCustomer) {
       notification.error({ title: "Access denied", description: "Only customers can add items to cart." });
       return;
     }
@@ -117,15 +166,24 @@ export default function ProductDetailPage() {
       navigate("/login");
       return;
     }
-    if (user?.role !== "customer") {
+    if (!isCustomer) {
       notification.error({ title: "Access denied", description: "Only customers can use the wishlist." });
       return;
     }
+    if (!activeVariant) return;
+    if (isInWishlist) {
+      notification.info({ title: "Variant is already in wishlist" });
+      return;
+    }
     try {
-      await api.post("/wishlist/add", { productId: product._id });
+      setWishlistLoading(true);
+      await api.post("/wishlist/add", { variantId: activeVariant._id });
+      setIsInWishlist(true);
       notification.success({ title: "Added to wishlist" });
     } catch (error) {
       notification.error({ title: getErrorMessage(error) });
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -176,6 +234,13 @@ export default function ProductDetailPage() {
           <Card variant="borderless" className="product-detail-card">
             <Title>{product.productName}</Title>
             <Paragraph type="secondary">{product.brandId?.brandName || "Brand"} • {product.categoryId?.categoryName || "Category"}</Paragraph>
+            <Space wrap style={{ marginBottom: 12 }}>
+              <Rate disabled allowHalf value={product.averageRating || 0} />
+              <Text type="secondary">{product.reviewCount || 0} comments</Text>
+              <Text type="secondary">{product.buyerCount || 0} buyers</Text>
+              <Text type="secondary">Sold {product.sold || 0}</Text>
+              <Text type="secondary">Views {product.views || 0}</Text>
+            </Space>
             <Title level={3}>{Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(activeVariant?.price || product.price || 0)}</Title>
             <Space wrap orientation="vertical" size="middle">
               <div>
@@ -202,7 +267,15 @@ export default function ProductDetailPage() {
               </div>
               <Space orientation="horizontal" size="middle">
                 <Button type="primary" icon={<ShoppingCartOutlined />} onClick={handleAddToCart}>Add to cart</Button>
-                <Button type="default" icon={<HeartOutlined />} onClick={handleWishlist}>Wishlist</Button>
+                <Button
+                  type={isInWishlist ? "primary" : "default"}
+                  danger={isInWishlist}
+                  icon={isInWishlist ? <HeartFilled /> : <HeartOutlined />}
+                  loading={wishlistLoading}
+                  onClick={handleWishlist}
+                >
+                  {isInWishlist ? "Wishlisted" : "Wishlist"}
+                </Button>
               </Space>
               <div className="product-specs">
                 <Text strong>Description</Text>
@@ -217,6 +290,59 @@ export default function ProductDetailPage() {
           </Card>
         </Col>
       </Row>
+
+      <Divider />
+
+      <Row gutter={[24, 24]}>
+        <Col xs={24} lg={12}>
+          <Card title="Reviews">
+            <List
+              dataSource={reviews}
+              locale={{ emptyText: "No reviews yet" }}
+              renderItem={(review) => (
+                <List.Item>
+                  <List.Item.Meta
+                    title={(
+                      <Space wrap>
+                        <Text strong>{review.userId?.fullName || "Customer"}</Text>
+                        <Rate disabled value={review.rating} style={{ fontSize: 14 }} />
+                      </Space>
+                    )}
+                    description={review.comment || "No comment"}
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="Similar products">
+            <Row gutter={[16, 16]}>
+              {similarProducts.map((item) => (
+                <Col xs={24} sm={12} key={item._id}>
+                  <ProductCard product={item} />
+                </Col>
+              ))}
+              {!similarProducts.length && <Text type="secondary">No similar products</Text>}
+            </Row>
+          </Card>
+        </Col>
+      </Row>
+
+      {isCustomer && viewedProducts.length > 0 && (
+        <>
+          <Divider />
+          <Card title="Recently viewed">
+            <Row gutter={[16, 16]}>
+              {viewedProducts.map((item) => (
+                <Col xs={24} sm={12} lg={6} key={item._id}>
+                  <ProductCard product={item} />
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

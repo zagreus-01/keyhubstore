@@ -4,6 +4,11 @@ const express = require("express");
 const cors = require("cors");
 
 const path = require("path");
+const { apiLimiter } = require("./middleware/rateLimit.middleware");
+const {
+  notFoundHandler,
+  errorHandler
+} = require("./middleware/error.middleware");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const uploadRoutes = require("./routes/upload.routes");
@@ -26,43 +31,41 @@ const cartRoutes = require("./routes/cart.routes");
 const reviewRoutes = require("./routes/review.routes");
 const app = express();
 
-// middleware
+const apiRoutes = [
+  ["/api/auth", authRoutes],
+  ["/api/user", userRoutes],
+  ["/api/upload", uploadRoutes],
+  ["/api/admin/users", managementUserRoutes],
+  ["/api/product", productRoutes],
+  ["/api/category", categoryRoutes],
+  ["/api/brand", brandRoutes],
+  ["/api/cart", cartRoutes],
+  ["/api/wishlist", wishlistRoutes],
+  ["/api/order", orderRoutes],
+  ["/api/dashboard", dashboardRoutes],
+  ["/api/coupon", couponRoutes],
+  ["/api/payment", paymentRoutes],
+  ["/api/review", reviewRoutes]
+];
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use("/api", apiLimiter);
 
-// AUTH
-app.use("/api/auth", authRoutes);
+apiRoutes.forEach(([routePath, router]) => {
+  app.use(routePath, router);
+});
 
-// USER
-app.use("/api/user", userRoutes);
-app.use("/api/upload", uploadRoutes);
-app.use("/api/admin/users", managementUserRoutes);
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "..", "uploads"), {
+    maxAge: "7d",
+    immutable: true
+  })
+);
 
-// PRODUCT SYSTEM
-app.use("/api/product", productRoutes);
-app.use("/api/category", categoryRoutes);
-app.use("/api/brand", brandRoutes);
-// CART
-app.use("/api/cart", cartRoutes);
-
-// WISHLIST
-app.use("/api/wishlist", wishlistRoutes);
-
-// ORDER
-app.use("/api/order", orderRoutes);
-
-// DASHBOARD
-app.use("/api/dashboard", dashboardRoutes);
-
-// COUPON
-app.use("/api/coupon", couponRoutes);
-
-// PAYMENT
-app.use("/api/payment", paymentRoutes);
-
-// REVIEWS
-app.use("/api/review", reviewRoutes);
-
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+app.use("/api", notFoundHandler);
+app.use(errorHandler);
 
 module.exports = app;

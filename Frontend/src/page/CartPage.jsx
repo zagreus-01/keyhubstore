@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Button, Card, Col, Divider, InputNumber, notification, Row, Space, Table, Typography } from "antd";
 import { DeleteOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import api, { getErrorMessage } from "../util/api";
-import { useAuth } from "../components/context/AuthContext";
+import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
 
@@ -14,22 +14,6 @@ export default function CartPage() {
   const [cart, setCart] = useState({ items: [], totalPrice: 0 });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  if (!isCustomer) {
-    return (
-      <div className="page-cart">
-        <Title>Shopping cart</Title>
-        <Card>
-          <Alert
-            message="Cart is only available for customers"
-            description="As an admin or staff user, you can manage orders from the admin dashboard. Browse products freely, but checkout is reserved for customers."
-            type="info"
-            showIcon
-          />
-        </Card>
-      </div>
-    );
-  }
 
   useEffect(() => {
     const fetchCart = async () => {
@@ -120,6 +104,22 @@ export default function CartPage() {
     () => Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(cart.totalPrice || 0),
     [cart.totalPrice]
   );
+
+  if (!isCustomer) {
+    return (
+      <div className="page-cart">
+        <Title>Shopping cart</Title>
+        <Card>
+          <Alert
+            message="Cart is only available for customers"
+            description="As an admin or staff user, you can manage orders from the admin dashboard. Browse products freely, but checkout is reserved for customers."
+            type="info"
+            showIcon
+          />
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="page-cart">

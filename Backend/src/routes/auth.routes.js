@@ -1,6 +1,10 @@
 const express = require("express");
 
 const router = express.Router();
+const {
+    authLimiter,
+    tokenRefreshLimiter
+} = require("../middleware/rateLimit.middleware");
 
 const registerController = require("../controllers/auth/register.controller");
 
@@ -18,16 +22,19 @@ const resetPasswordController = require("../controllers/auth/resetPassword.contr
 
 router.post(
     "/register",
+    authLimiter,
     registerController
 );
 
 router.post(
     "/login",
+    authLimiter,
     loginController
 );
 
 router.post(
     "/refresh-token",
+    tokenRefreshLimiter,
     refreshTokenController
 );
 
@@ -38,16 +45,19 @@ router.post(
 
 router.post(
     "/forgot-password",
+    authLimiter,
     forgotPasswordController
 );
 
 router.post(
     "/verify-otp",
+    authLimiter,
     verifyOtpController
 );
 
 router.post(
     "/reset-password",
+    authLimiter,
     resetPasswordController
 );
 

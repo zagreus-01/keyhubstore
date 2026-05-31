@@ -13,7 +13,8 @@ const {
     updateOrderStatus,
     confirmDelivery,
     getAllOrders,
-    getOrderQr
+    getOrderQr,
+    updatePaymentStatusCOD
 } = require("../controllers/payment/order.controller");
 
 
@@ -76,6 +77,13 @@ router.put(
     verifyToken,
     checkRole("staff", "admin"),
     updateOrderStatus
+);
+
+router.put(
+    "/:id/payment-status-cod",
+    verifyToken,
+    checkRole("staff", "admin"),
+    updatePaymentStatusCOD
 );
 
 router.put(

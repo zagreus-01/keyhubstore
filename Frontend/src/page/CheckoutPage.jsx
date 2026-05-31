@@ -6,6 +6,7 @@ import {
   Card,
   Form,
   Input,
+  InputNumber,
   List,
   Radio,
   Select,
@@ -17,9 +18,10 @@ import {
 } from "antd";
 
 import api, { getErrorMessage } from "../util/api";
-import { useAuth } from "../components/context/AuthContext";
+import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
+const POINT_VALUE = 1000;
 
 export default function CheckoutPage() {
   const { user } = useAuth();
@@ -34,6 +36,9 @@ export default function CheckoutPage() {
 
   const [couponCode, setCouponCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [pointsToUse, setPointsToUse] = useState(0);
+  const [pointsDiscount, setPointsDiscount] = useState(0);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [finalAmount, setFinalAmount] = useState(0);
   const [couponInfo, setCouponInfo] = useState(null);
 
@@ -57,10 +62,11 @@ export default function CheckoutPage() {
       if (!isCustomer) return;
 
       try {
-        const [cartRes, addressRes, couponsRes] = await Promise.all([
+        const [cartRes, addressRes, couponsRes, profileRes] = await Promise.all([
           api.get("/cart"),
           api.get("/user/address"),
-          api.get("/coupon/active")
+          api.get("/coupon/active"),
+          api.get("/user/profile")
         ]);
 
         setCart(cartRes.data.data);
@@ -75,6 +81,7 @@ export default function CheckoutPage() {
         }
 
         setActiveCoupons(couponsRes.data.data || []);
+        setLoyaltyPoints(profileRes.data.data?.loyaltyPoints || 0);
       } catch (error) {
         notification.error({
           message: getErrorMessage(error)
@@ -86,17 +93,40 @@ export default function CheckoutPage() {
   }, [isCustomer]);
 
   useEffect(() => {
+    const couponDiscount = couponInfo?.discountAmount || 0;
+    const maxPoints = Math.min(
+      loyaltyPoints,
+      Math.floor(Math.max((cart.totalPrice || 0) - couponDiscount, 0) / POINT_VALUE)
+    );
+    const normalizedPoints = Math.min(Math.max(Number(pointsToUse) || 0, 0), maxPoints);
+    const nextPointsDiscount = normalizedPoints * POINT_VALUE;
+
+    if (normalizedPoints !== pointsToUse) {
+      setPointsToUse(normalizedPoints);
+    }
+
+    setPointsDiscount(nextPointsDiscount);
+
     if (couponInfo && cart.totalPrice) {
       setDiscountAmount(couponInfo.discountAmount || 0);
 
       setFinalAmount(
-        (cart.totalPrice || 0) - (couponInfo.discountAmount || 0)
+        Math.max((cart.totalPrice || 0) - (couponInfo.discountAmount || 0) - nextPointsDiscount, 0)
       );
     } else {
       setDiscountAmount(0);
-      setFinalAmount(cart.totalPrice || 0);
+      setFinalAmount(Math.max((cart.totalPrice || 0) - nextPointsDiscount, 0));
     }
-  }, [couponInfo, cart]);
+  }, [couponInfo, cart, loyaltyPoints, pointsToUse]);
+
+  const selectedAddress = useMemo(
+    () =>
+      addresses.find((item) => item._id === selectedAddressId) || null,
+    [addresses, selectedAddressId]
+  );
+
+  const shouldShowAddressForm = showNewAddressForm || !addresses.length;
+  const useSavedAddress = Boolean(selectedAddress && !shouldShowAddressForm);
 
   if (!isCustomer) {
     return (
@@ -115,19 +145,11 @@ export default function CheckoutPage() {
     );
   }
 
-  const selectedAddress = useMemo(
-    () =>
-      addresses.find((item) => item._id === selectedAddressId) || null,
-    [addresses, selectedAddressId]
-  );
-
-  const hasSavedAddress = Boolean(selectedAddress);
-
   const handleFinish = async (values) => {
     setLoading(true);
 
     try {
-      const shippingAddress = hasSavedAddress
+      const shippingAddress = useSavedAddress
         ? {
             fullName: selectedAddress.fullName,
             phone: selectedAddress.phone,
@@ -142,7 +164,8 @@ export default function CheckoutPage() {
       const res = await api.post("/order/checkout", {
         shippingAddress,
         paymentMethod,
-        couponCode: couponCode.trim()
+        couponCode: couponCode.trim(),
+        pointsToUse
       });
 
       const order = res.data.data;
@@ -231,7 +254,8 @@ export default function CheckoutPage() {
             coupon.targetId &&
             coupon.targetId.includes(
               String(
-                item.variantId?.productId?.categoryId
+                item.variantId?.productId?.categoryId?._id ||
+                  item.variantId?.productId?.categoryId
               )
             )
         );
@@ -243,7 +267,10 @@ export default function CheckoutPage() {
           (item) =>
             coupon.targetId &&
             coupon.targetId.includes(
-              String(item.variantId?.productId?.brandId)
+              String(
+                item.variantId?.productId?.brandId?._id ||
+                  item.variantId?.productId?.brandId
+              )
             )
         );
       }
@@ -398,6 +425,22 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          <div style={{ marginBottom: 16 }}>
+            <Text strong>Loyalty points</Text>
+            <div style={{ marginTop: 8 }}>
+              <InputNumber
+                min={0}
+                max={Math.min(loyaltyPoints, Math.floor(Math.max((cart.totalPrice || 0) - discountAmount, 0) / POINT_VALUE))}
+                value={pointsToUse}
+                onChange={(value) => setPointsToUse(Number(value) || 0)}
+                style={{ width: 160, marginRight: 8 }}
+              />
+              <Text type="secondary">
+                Available: {loyaltyPoints} points, 1 point = {Intl.NumberFormat("vi-VN").format(POINT_VALUE)} VND
+              </Text>
+            </div>
+          </div>
+
           <div className="checkout-total">
             <Text type="secondary">Tạm tính</Text>
 
@@ -427,6 +470,25 @@ export default function CheckoutPage() {
               </>
             )}
 
+            {pointsDiscount > 0 && (
+              <>
+                <Text type="secondary">
+                  Points discount
+                </Text>
+
+                <Title
+                  level={5}
+                  style={{ color: "green" }}
+                >
+                  -
+                  {Intl.NumberFormat("vi-VN", {
+                    style: "currency",
+                    currency: "VND"
+                  }).format(pointsDiscount)}
+                </Title>
+              </>
+            )}
+
             <Text type="secondary">
               Tổng thanh toán
             </Text>
@@ -441,13 +503,13 @@ export default function CheckoutPage() {
         </Card>
 
         <Card title="Shipping address">
-          {addresses.length > 0 ? (
-            <Form
+          <Form
               layout="vertical"
               onFinish={handleFinish}
               initialValues={{ paymentMethod }}
             >
-              <Form.Item label="Choose saved address">
+              {addresses.length > 0 && (
+                <Form.Item label="Choose saved address">
                 <Select
                   value={selectedAddressId}
                   onChange={setSelectedAddressId}
@@ -457,9 +519,10 @@ export default function CheckoutPage() {
                   }))}
                 />
               </Form.Item>
+              )}
 
               {selectedAddress &&
-                !showNewAddressForm && (
+                !shouldShowAddressForm && (
                   <Card type="inner">
                     <Text strong>
                       {selectedAddress.fullName}
@@ -475,6 +538,7 @@ export default function CheckoutPage() {
                   </Card>
                 )}
 
+              {addresses.length > 0 && (
               <Button
                 type="link"
                 onClick={() =>
@@ -488,8 +552,9 @@ export default function CheckoutPage() {
                   ? "Ẩn form nhập địa chỉ"
                   : "Nhập địa chỉ mới"}
               </Button>
+              )}
 
-              {showNewAddressForm && (
+              {shouldShowAddressForm && (
                 <>
                   <Form.Item
                     label="Full name"
@@ -610,12 +675,6 @@ export default function CheckoutPage() {
                 </Button>
               </Form.Item>
             </Form>
-          ) : (
-            <Alert
-              message="No saved address found."
-              type="info"
-            />
-          )}
         </Card>
       </Space>
 

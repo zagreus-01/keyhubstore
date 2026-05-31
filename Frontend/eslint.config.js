@@ -1,24 +1,39 @@
-module.exports = {
-  root: true,
-  env: { browser: true, es2020: true },
-  extends: [
-    'eslint:recommended',
-    'plugin:react/recommended',
-    'plugin:react/jsx-runtime',
-    'plugin:react-hooks/recommended',
-  ],
-  ignorePatterns: ['dist', '.eslintrc.cjs'],
-  parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
-  settings: { react: { version: '18.2' } },
-  plugins: ['react-refresh'],
-  rules: {
-    'react/jsx-no-target-blank': 'off',
-    'no-unused-vars': 'off',
-    'no-debugger': 'off',
-    'react/prop-types': 'off',
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true },
-    ],
+import js from "@eslint/js";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+
+export default [
+  {
+    ignores: ["dist"]
   },
-}
+  js.configs.recommended,
+  {
+    files: ["**/*.{js,jsx}"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      globals: globals.browser,
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true
+        },
+        sourceType: "module"
+      }
+    },
+    plugins: {
+      "react-hooks": reactHooks,
+      "react-refresh": reactRefresh
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      "no-unused-vars": "off",
+      "no-debugger": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-refresh/only-export-components": [
+        "warn",
+        { allowConstantExport: true }
+      ]
+    }
+  }
+];

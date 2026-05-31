@@ -24,7 +24,7 @@ router.post(
 );
 
 router.delete(
-    "/remove/:productId",
+    "/remove/:variantId",
     verifyToken,
     checkRole("customer"),
     removeFromWishlist

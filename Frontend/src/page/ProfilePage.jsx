@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { PlusOutlined, CameraOutlined } from "@ant-design/icons";
 import { Avatar, Button, Card, Divider, Form, Input, List, Modal, notification, Space, Tag, Typography, Upload } from "antd";
 import api, { getErrorMessage } from "../util/api";
-import { useAuth } from "../components/context/AuthContext";
+import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
 
@@ -163,6 +163,9 @@ export default function ProfilePage() {
               </Form.Item>
               <Form.Item label="Phone" name="phone">
                 <Input />
+              </Form.Item>
+              <Form.Item label="Loyalty points">
+                <Tag color="green">{profile.loyaltyPoints || 0} points</Tag>
               </Form.Item>
               <Button type="primary" htmlType="submit">Update profile</Button>
             </Form>

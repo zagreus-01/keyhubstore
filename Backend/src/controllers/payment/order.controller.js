@@ -20,7 +20,8 @@ const checkout = async (req, res) => {
                 req.user.id,
                 req.body.shippingAddress,
                 req.body.paymentMethod,
-                req.body.couponCode
+                req.body.couponCode,
+                req.body.pointsToUse
             );
 
         return res.status(201).json({
@@ -51,14 +52,19 @@ const getMyOrders = async (
 
     try {
 
-        const orders =
+        const result =
             await orderService.getMyOrders(
-                req.user.id
+                req.user.id,
+                {
+                    page: req.query.page,
+                    limit: req.query.limit
+                }
             );
 
         return res.status(200).json({
             success: true,
-            data: orders
+            data: result.orders,
+            pagination: result.pagination
         });
 
     } catch (error) {
@@ -238,13 +244,55 @@ const updateOrderStatus = async (
 };
 
 
+// =========================
+// UPDATE PAYMENT STATUS COD
+// =========================
+const updatePaymentStatusCOD = async (
+    req,
+    res
+) => {
+
+    try {
+        const orderId = req.params.id;
+
+        // Validate ObjectId
+        if (!isValidObjectId(orderId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID format"
+            });
+        }
+
+        const order =
+            await orderService.updatePaymentStatusCOD(
+                orderId
+            );
+
+        return res.status(200).json({
+            success: true,
+            message: "Order payment status updated",
+            data: order
+        });
+
+    } catch (error) {
+
+        return res.status(400).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+
+};
+
 module.exports = {
     checkout,
     getMyOrders,
     getOrderDetail,
     getAllOrders,
     cancelOrder,
-    updateOrderStatus
+    updateOrderStatus,
+    updatePaymentStatusCOD
 };
 
 // =========================
@@ -314,7 +362,7 @@ const getOrderQr = async (req, res) => {
 
         // generate VNPAY payment URL to be rendered as QR code
         try {
-            const paymentUrl = await paymentService.createVNPayPayment(order._id, req.ip);
+            const paymentUrl = await paymentService.createVNPayPayment(order._id, req.ip, order.userId);
             return res.status(200).json({ success: true, data: { qrPayload: paymentUrl } });
         } catch (err) {
             // fallback to simple payload if VNPAY creation fails

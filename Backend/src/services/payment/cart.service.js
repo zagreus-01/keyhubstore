@@ -10,6 +10,11 @@ const addToCart = async (
     variantId,
     quantity
 ) => {
+    const requestedQuantity = Number(quantity || 1);
+
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
+        throw new Error("Invalid quantity");
+    }
 
     const variant = await ProductVariant.findOne({
         _id: variantId,
@@ -20,7 +25,7 @@ const addToCart = async (
         throw new Error("Variant not found");
     }
 
-    if (variant.stock < quantity) {
+    if (variant.stock < requestedQuantity) {
         throw new Error("Not enough stock");
     }
 
@@ -42,7 +47,7 @@ const addToCart = async (
     if (existingItem) {
 
         const newQuantity =
-            existingItem.quantity + quantity;
+            existingItem.quantity + requestedQuantity;
 
         if (newQuantity > variant.stock) {
             throw new Error("Quantity exceeds stock");
@@ -54,7 +59,7 @@ const addToCart = async (
 
         cart.items.push({
             variantId,
-            quantity
+            quantity: requestedQuantity
         });
 
     }
@@ -119,15 +124,23 @@ const updateCartItem = async (
     variantId,
     quantity
 ) => {
+    const requestedQuantity = Number(quantity);
+
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
+        throw new Error("Invalid quantity");
+    }
 
     const variant =
-        await ProductVariant.findById(variantId);
+        await ProductVariant.findOne({
+            _id: variantId,
+            status: "active"
+        });
 
     if (!variant) {
         throw new Error("Variant not found");
     }
 
-    if (quantity > variant.stock) {
+    if (requestedQuantity > variant.stock) {
         throw new Error("Quantity exceeds stock");
     }
 
@@ -145,7 +158,7 @@ const updateCartItem = async (
         throw new Error("Item not found");
     }
 
-    item.quantity = quantity;
+    item.quantity = requestedQuantity;
 
     await cart.save();
 

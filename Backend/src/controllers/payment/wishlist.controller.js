@@ -20,9 +20,9 @@ const getWishlist = async (req, res) => {
 const addToWishlist = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { productId } = req.body;
+        const { variantId } = req.body;
 
-        const data = await wishlistService.addToWishlist(userId, productId);
+        const data = await wishlistService.addToWishlist(userId, variantId);
 
         return res.status(200).json({
             success: true,
@@ -40,9 +40,9 @@ const addToWishlist = async (req, res) => {
 const removeFromWishlist = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { productId } = req.params;
+        const { variantId } = req.params;
 
-        const data = await wishlistService.removeFromWishlist(userId, productId);
+        const data = await wishlistService.removeFromWishlist(userId, variantId);
 
         return res.status(200).json({
             success: true,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, Form, Input, Modal, Space, Table, Typography, notification, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
 
@@ -13,7 +13,7 @@ export default function AdminCategoryPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [form] = Form.useForm();
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get("/category");
@@ -26,17 +26,17 @@ export default function AdminCategoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
-  const openModal = (category = null) => {
+  const openModal = useCallback((category = null) => {
     setCurrentCategory(category);
     setModalOpen(true);
     form.setFieldsValue({ categoryName: category?.categoryName || "" });
-  };
+  }, [form]);
 
   const closeModal = () => {
     setModalOpen(false);
@@ -66,7 +66,7 @@ export default function AdminCategoryPage() {
     }
   };
 
-  const handleDelete = async (category) => {
+  const handleDelete = useCallback(async (category) => {
     try {
       await api.delete(`/category/${category._id}`);
       notification.success({ message: "Xóa danh mục thành công" });
@@ -77,7 +77,7 @@ export default function AdminCategoryPage() {
         description: getErrorMessage(error)
       });
     }
-  };
+  }, [fetchCategories]);
 
   const filteredCategories = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
@@ -115,7 +115,7 @@ export default function AdminCategoryPage() {
         )
       }
     ],
-    []
+    [handleDelete, openModal]
   );
 
   return (
