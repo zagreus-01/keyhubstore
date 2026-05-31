@@ -1,5 +1,5 @@
  import axios from "axios";
-import { notification } from "antd";
+import { notification } from "./feedback";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 

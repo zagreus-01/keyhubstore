@@ -1,19 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  Card,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Space,
-  Table,
-  Typography,
-  notification,
-  Select,
-  DatePicker,
-  Spin,
-} from "antd";
+import { Button, Card, Form, Input, InputNumber, Modal, Space, Table, Typography, Select, DatePicker, Spin } from "antd";
 
 import {
   EditOutlined,
@@ -24,6 +10,7 @@ import {
 
 import dayjs from "dayjs";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

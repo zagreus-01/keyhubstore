@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Button, Card, Col, Empty, notification, Row, Tag, Typography } from "antd";
+import { Alert, Button, Card, Col, Empty, Row, Tag, Typography } from "antd";
 import api, { getBackendUrl, getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 import useAuth from "../components/context/useAuth";
 
 const { Title, Paragraph, Text } = Typography;

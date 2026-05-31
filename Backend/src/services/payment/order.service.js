@@ -16,7 +16,7 @@ const ORDER_STATUS = {
 };
 
 const AUTOMATIC_CONFIRM_MINUTES = 30;
-const POINT_VALUE = 1000;
+const POINT_VALUE = 1;
 
 const validStatuses = Object.values(ORDER_STATUS);
 

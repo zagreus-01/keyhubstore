@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Card, Descriptions, Divider, Empty, Form, Input, List, Modal, notification, Rate, Space, Steps, Tag, Typography } from "antd";
+import { Button, Card, Descriptions, Divider, Empty, Form, Input, Modal, Rate, Space, Steps, Tag, Typography } from "antd";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
@@ -129,7 +130,7 @@ export default function OrderDetailPage() {
       notification.success({
         message: "Review submitted",
         description: reward
-          ? `Reward: ${reward.points} points and coupon ${reward.coupon?.code}`
+          ? `Reward: ${reward.points} points (${Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(reward.discountValue || reward.points)} discount)`
           : "Thank you for your review"
       });
       setReviewingItem(null);
@@ -174,7 +175,7 @@ export default function OrderDetailPage() {
           status={order.orderStatus === "cancelled" ? "error" : "process"}
           items={trackingSteps.map((step) => ({
             title: step.title,
-            description: step.key === order.orderStatus ? "Current status" : undefined
+            content: step.key === order.orderStatus ? "Current status" : undefined
           }))}
         />
       </Card>
@@ -189,28 +190,25 @@ export default function OrderDetailPage() {
       </Descriptions>
       <Divider />
 
-      <List
-        header={<Title level={5}>Items</Title>}
-        dataSource={order.items || []}
-        renderItem={(item) => (
-          <List.Item>
-            <Card size="small" style={{ width: "100%" }}>
-              <Text strong>{item.productName}</Text>
-              <div>
-                <Text type="secondary">Variant: {item.variantName || item.sku || "-"}</Text>
-              </div>
-              <div>
-                <Text>{item.quantity} x {Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.finalPrice)}</Text>
-              </div>
-              {isCustomer && order.orderStatus === "delivered" && (item.productId || item.variantId) && (
-                <Button size="small" style={{ marginTop: 8 }} onClick={() => setReviewingItem(item)}>
-                  Review
-                </Button>
-              )}
-            </Card>
-          </List.Item>
-        )}
-      />
+      <Title level={5}>Items</Title>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        {(order.items || []).map((item, index) => (
+          <Card size="small" style={{ width: "100%" }} key={`${item.variantId || item.productName}-${index}`}>
+            <Text strong>{item.productName}</Text>
+            <div>
+              <Text type="secondary">Variant: {item.variantName || item.sku || "-"}</Text>
+            </div>
+            <div>
+              <Text>{item.quantity} x {Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.finalPrice)}</Text>
+            </div>
+            {isCustomer && order.orderStatus === "delivered" && (item.productId || item.variantId) && (
+              <Button size="small" style={{ marginTop: 8 }} onClick={() => setReviewingItem(item)}>
+                Review
+              </Button>
+            )}
+          </Card>
+        ))}
+      </Space>
       <Divider />
 
       <Space wrap>
@@ -244,6 +242,7 @@ export default function OrderDetailPage() {
         onCancel={() => setReviewingItem(null)}
         onOk={() => reviewForm.submit()}
         confirmLoading={reviewLoading}
+        forceRender
       >
         <Form form={reviewForm} layout="vertical" onFinish={handleSubmitReview} initialValues={{ rating: 5 }}>
           <Form.Item name="rating" label="Rating" rules={[{ required: true, message: "Choose rating" }]}>

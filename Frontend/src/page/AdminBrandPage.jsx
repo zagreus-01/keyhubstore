@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Card, Form, Input, Modal, Space, Table, Typography, notification, Spin } from "antd";
+import { Button, Card, Form, Input, Modal, Space, Table, Typography, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 
 const { Title } = Typography;
 

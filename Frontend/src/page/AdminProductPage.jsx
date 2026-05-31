@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
-import { Button, Card, Col, Divider, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag, Typography, Upload, notification, Spin } from "antd";
+import { Button, Card, Col, Divider, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag, Typography, Upload, Spin } from "antd";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 import { slugifyText } from "../util/slugify";
 
 const { Title, Text } = Typography;

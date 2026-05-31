@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Breadcrumb, Button, Card, Col, Divider, Image, InputNumber, List, notification, Rate, Row, Select, Space, Tag, Typography } from "antd";
+import { Breadcrumb, Button, Card, Col, Divider, Image, InputNumber, Rate, Row, Select, Space, Tag, Typography } from "antd";
 import { HeartFilled, HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
@@ -8,7 +8,9 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import api, { getBackendUrl, getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 import useAuth from "../components/context/useAuth";
+import useCart from "../components/context/useCart";
 import ProductCard from "../components/common/ProductCard";
 
 const { Title, Paragraph, Text } = Typography;
@@ -17,6 +19,7 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const { openCartDrawer } = useCart();
   const normalizedRole = String(user?.role || "").toLowerCase();
   const isCustomer = normalizedRole === "customer";
   const [product, setProduct] = useState(null);
@@ -155,7 +158,7 @@ export default function ProductDetailPage() {
     try {
       await api.post("/cart/add", { variantId: activeVariant._id, quantity });
       notification.success({ title: "Added to cart" });
-      navigate("/cart");
+      openCartDrawer({ refresh: true });
     } catch (error) {
       notification.error({ title: getErrorMessage(error) });
     }
@@ -201,7 +204,7 @@ export default function ProductDetailPage() {
 
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={10}>
-          <Card bordered={false} className="product-detail-card">
+          <Card variant="borderless" className="product-detail-card">
             <div className="product-detail-swiper-wrapper">
               {productImageUrls.length ? (
                 <>
@@ -296,23 +299,29 @@ export default function ProductDetailPage() {
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={12}>
           <Card title="Reviews">
-            <List
-              dataSource={reviews}
-              locale={{ emptyText: "No reviews yet" }}
-              renderItem={(review) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={(
-                      <Space wrap>
-                        <Text strong>{review.userId?.fullName || "Customer"}</Text>
-                        <Rate disabled value={review.rating} style={{ fontSize: 14 }} />
-                      </Space>
-                    )}
-                    description={review.comment || "No comment"}
-                  />
-                </List.Item>
-              )}
-            />
+            {reviews.length ? (
+              <Space direction="vertical" style={{ width: "100%" }} size={0}>
+                {reviews.map((review, index) => (
+                  <div
+                    key={review._id || index}
+                    style={{
+                      padding: "12px 0",
+                      borderBottom: index === reviews.length - 1 ? "none" : "1px solid #f0f0f0"
+                    }}
+                  >
+                    <Space wrap>
+                      <Text strong>{review.userId?.fullName || "Customer"}</Text>
+                      <Rate disabled value={review.rating} style={{ fontSize: 14 }} />
+                    </Space>
+                    <div>
+                      <Text type="secondary">{review.comment || "No comment"}</Text>
+                    </div>
+                  </div>
+                ))}
+              </Space>
+            ) : (
+              <Text type="secondary">No reviews yet</Text>
+            )}
           </Card>
         </Col>
         <Col xs={24} lg={12}>

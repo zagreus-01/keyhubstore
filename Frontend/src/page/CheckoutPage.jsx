@@ -1,27 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Alert,
-  Button,
-  Card,
-  Form,
-  Input,
-  InputNumber,
-  List,
-  Radio,
-  Select,
-  Space,
-  Typography,
-  notification,
-  Modal,
-  Tag
-} from "antd";
+import { Alert, Button, Card, Form, Input, InputNumber, Radio, Select, Space, Typography, Modal, Tag } from "antd";
 
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
-const POINT_VALUE = 1000;
+const POINT_VALUE = 1;
+
+const getCouponScopeLabel = (applyTo) => {
+  const scopes = Array.isArray(applyTo) ? applyTo : [applyTo].filter(Boolean);
+  if (!scopes.length || scopes.includes("all")) return "Tất cả sản phẩm";
+
+  const labels = {
+    product: "Sản phẩm",
+    category: "Danh mục",
+    brand: "Thương hiệu"
+  };
+
+  return scopes.map((scope) => labels[scope] || scope).join(", ");
+};
 
 export default function CheckoutPage() {
   const { user } = useAuth();
@@ -337,34 +336,36 @@ export default function CheckoutPage() {
         style={{ width: "100%" }}
       >
         <Card title="Order summary">
-          <List
-            dataSource={cart.items}
-            renderItem={(item) => (
-              <List.Item>
-                <List.Item.Meta
-                  title={
-                    item.variantId?.productId?.productName
-                  }
-                  description={`Qty: ${item.quantity} • ${
-                    item.variantId?.sku || "Variant"
-                  }`}
-                />
-
-                <Text strong>
-                  {Intl.NumberFormat("vi-VN", {
-                    style: "currency",
-                    currency: "VND"
-                  }).format(
-                    (item.variantId?.price || 0) *
-                      item.quantity
-                  )}
-                </Text>
-              </List.Item>
-            )}
-            locale={{
-              emptyText: "Cart is empty"
-            }}
-          />
+          {cart.items.length ? (
+            <Space direction="vertical" style={{ width: "100%" }} size={0}>
+              {cart.items.map((item, index) => (
+                <div
+                  key={item.variantId?._id || index}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    padding: "12px 0",
+                    borderBottom: index === cart.items.length - 1 ? "none" : "1px solid #f0f0f0"
+                  }}
+                >
+                  <div>
+                    <Text strong>{item.variantId?.productId?.productName}</Text>
+                    <br />
+                    <Text type="secondary">{`Qty: ${item.quantity} - ${item.variantId?.sku || "Variant"}`}</Text>
+                  </div>
+                  <Text strong>
+                    {Intl.NumberFormat("vi-VN", {
+                      style: "currency",
+                      currency: "VND"
+                    }).format((item.variantId?.price || 0) * item.quantity)}
+                  </Text>
+                </div>
+              ))}
+            </Space>
+          ) : (
+            <Text type="secondary">Cart is empty</Text>
+          )}
 
           <div
             style={{
@@ -686,58 +687,50 @@ export default function CheckoutPage() {
         }
         footer={null}
       >
-        <List
-          dataSource={activeCoupons}
-          renderItem={(coupon) => (
-            <List.Item
-              actions={[
+        {activeCoupons.length ? (
+          <Space direction="vertical" style={{ width: "100%" }} size={0}>
+            {activeCoupons.map((coupon, index) => (
+              <div
+                key={coupon._id || coupon.code}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 16,
+                  padding: "12px 0",
+                  borderBottom: index === activeCoupons.length - 1 ? "none" : "1px solid #f0f0f0"
+                }}
+              >
+                <div>
+                  <Space>
+                    <Text strong>{coupon.code}</Text>
+                    <Tag color="blue">
+                      {coupon.discountType === "percent"
+                        ? `${coupon.discountValue}%`
+                        : `${Intl.NumberFormat("vi-VN").format(coupon.discountValue)}đ`}
+                    </Tag>
+                  </Space>
+                  <div>
+                    <Text type="secondary">
+                      {`Áp dụng cho: ${getCouponScopeLabel(coupon.applyTo)}`}
+                    </Text>
+                  </div>
+                </div>
                 <Button
                   type="primary"
                   size="small"
                   onClick={() => {
-                    handleCheckCoupon(
-                      coupon.code
-                    );
-
+                    handleCheckCoupon(coupon.code);
                     setIsCouponModalOpen(false);
                   }}
                 >
                   Áp dụng
                 </Button>
-              ]}
-            >
-              <List.Item.Meta
-                title={
-                  <Space>
-                    <Text strong>
-                      {coupon.code}
-                    </Text>
-
-                    <Tag color="blue">
-                      {coupon.discountType ===
-                      "percent"
-                        ? `${coupon.discountValue}%`
-                        : `${Intl.NumberFormat(
-                            "vi-VN"
-                          ).format(
-                            coupon.discountValue
-                          )}đ`}
-                    </Tag>
-                  </Space>
-                }
-                description={`Áp dụng cho: ${
-                  coupon.applyTo === "all"
-                    ? "Tất cả sản phẩm"
-                    : coupon.applyTo
-                }`}
-              />
-            </List.Item>
-          )}
-          locale={{
-            emptyText:
-              "Không có mã giảm giá nào"
-          }}
-        />
+              </div>
+            ))}
+          </Space>
+        ) : (
+          <Text type="secondary">Không có mã giảm giá nào</Text>
+        )}
       </Modal>
     </div>
   );

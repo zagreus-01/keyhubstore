@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, Form, Input, Typography, notification } from "antd";
+import { Button, Card, Form, Input, Typography } from "antd";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 
 const { Title, Paragraph } = Typography;
 

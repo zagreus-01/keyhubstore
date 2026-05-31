@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Button, Card, Col, Divider, InputNumber, notification, Row, Space, Table, Typography } from "antd";
+import { Alert, Button, Card, Col, Divider, InputNumber, Row, Space, Table, Typography } from "antd";
 import { DeleteOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import api, { getErrorMessage } from "../util/api";
 import useAuth from "../components/context/useAuth";
+import useCart from "../components/context/useCart";
 
 const { Title, Text } = Typography;
 
@@ -11,47 +11,21 @@ export default function CartPage() {
   const { user } = useAuth();
   const normalizedRole = String(user?.role || "").toLowerCase();
   const isCustomer = normalizedRole === "customer";
-  const [cart, setCart] = useState({ items: [], totalPrice: 0 });
-  const [loading, setLoading] = useState(true);
+  const { cart, fetchCart, loading, removeCartItem, updateCartQuantity } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchCart = async () => {
-      if (!isCustomer) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const response = await api.get("/cart");
-        setCart(response.data.data);
-      } catch (error) {
-        notification.error({ title: getErrorMessage(error) });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCart();
-  }, [isCustomer]);
+    if (isCustomer) {
+      fetchCart();
+    }
+  }, [fetchCart, isCustomer]);
 
   const updateQuantity = async (variantId, quantity) => {
-    try {
-      const response = await api.put("/cart/update", { variantId, quantity });
-      setCart(response.data.data);
-    } catch (error) {
-      notification.error({ title: getErrorMessage(error) });
-    }
+    await updateCartQuantity(variantId, quantity);
   };
 
   const removeItem = async (variantId) => {
-    try {
-      const response = await api.delete(`/cart/remove/${variantId}`);
-      setCart(response.data.data);
-      notification.success({ title: "Item removed" });
-    } catch (error) {
-      notification.error({ title: getErrorMessage(error) });
-    }
+    await removeCartItem(variantId);
   };
 
   const columns = [

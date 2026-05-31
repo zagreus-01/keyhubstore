@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Input, Select, Space, Spin, Table, Tag, Typography, notification } from "antd";
+import { Button, Card, Input, Select, Space, Spin, Table, Tag, Typography } from "antd";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

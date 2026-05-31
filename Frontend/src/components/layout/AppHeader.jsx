@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Badge, Button, Input, Layout, Menu, Space, Avatar, Dropdown } from "antd";
 import { DashboardOutlined, ShoppingCartOutlined, HeartOutlined, ShopOutlined, HomeOutlined } from "@ant-design/icons";
-import api from "../../util/api";
 import useAuth from "../context/useAuth";
+import useCart from "../context/useCart";
 
 const { Header } = Layout;
 
@@ -16,24 +15,11 @@ function AppHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [cartCount, setCartCount] = useState(0);
-
-  useEffect(() => {
-    if (!user) {
-      setCartCount(0);
-      return;
-    }
-
-    const fetchCart = async () => {
-      try {
-        const response = await api.get("/cart");
-        setCartCount(response.data.data.items.length || 0);
-      } catch {
-        setCartCount(0);
-      }
-    };
-    fetchCart();
-  }, [location.pathname, user]);
+  const { cartCount, openCartDrawer } = useCart();
+  const normalizedRole = String(user?.role || "").toLowerCase();
+  const isCustomer = !user || normalizedRole === "customer";
+  const isStaff = normalizedRole === "staff";
+  const isAdmin = normalizedRole === "admin";
 
   const items = navItems.map((item) => ({
     key: item.key,
@@ -42,10 +28,6 @@ function AppHeader() {
     onClick: () => navigate(item.path)
   }));
 
-  const normalizedRole = String(user?.role || "").toLowerCase();
-  const isCustomer = !user || normalizedRole === "customer";
-  const isStaff = normalizedRole === "staff";
-  const isAdmin = normalizedRole === "admin";
   const isAdminRoute = location.pathname.startsWith("/admin");
   const showDashboardButton = user && (isStaff || isAdmin) && !isAdminRoute;
 
@@ -93,7 +75,7 @@ function AppHeader() {
           {isCustomer && (
             <>
               <Badge count={cartCount} size="small">
-                <Button type="text" icon={<ShoppingCartOutlined />} onClick={() => navigate("/cart")} />
+                <Button type="text" icon={<ShoppingCartOutlined />} onClick={() => user ? openCartDrawer({ refresh: true }) : navigate("/cart")} />
               </Badge>
               <Button type="text" icon={<HeartOutlined />} onClick={() => navigate("/wishlist")} />
             </>

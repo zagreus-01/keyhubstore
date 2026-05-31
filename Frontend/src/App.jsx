@@ -1,9 +1,11 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import { ConfigProvider } from "antd";
+import { App as AntdApp, ConfigProvider } from "antd";
 import { AuthProvider } from "./components/context/AuthContext";
+import { CartProvider } from "./components/context/CartContext";
 import useAuth from "./components/context/useAuth";
 import DefaultLayout from "./components/layout/DefaultLayout";
+import FeedbackProvider from "./components/common/FeedbackProvider";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import ScrollToTop from "./components/common/ScrollToTop";
 import "./index.css";
@@ -55,18 +57,27 @@ function App() {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#173f7a",
+          colorPrimary: "#123d66",
+          colorInfo: "#1b6b93",
+          colorSuccess: "#2f7d5c",
+          colorWarning: "#b97818",
+          colorError: "#b84a4a",
           fontFamily: '"Outfit", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-          borderRadius: 12,
+          borderRadius: 10,
+          colorText: "#172033",
+          colorBgLayout: "#f3f6f1",
         },
       }}
     >
-      <AuthProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <DefaultLayout>
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
+      <AntdApp>
+        <FeedbackProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <CartProvider>
+                <ScrollToTop />
+                <DefaultLayout>
+                  <Suspense fallback={<RouteFallback />}>
+                    <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/products/:id" element={<ProductDetailPage />} />
@@ -154,11 +165,14 @@ function App() {
                 <Route path="/payment-success" element={<PaymentSuccessPage />} />
                 <Route path="/payment-failed" element={<PaymentFailedPage />} />
                 <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
-          </DefaultLayout>
-        </BrowserRouter>
-      </AuthProvider>
+                    </Routes>
+                  </Suspense>
+                </DefaultLayout>
+              </CartProvider>
+            </BrowserRouter>
+          </AuthProvider>
+        </FeedbackProvider>
+      </AntdApp>
     </ConfigProvider>
   );
 }

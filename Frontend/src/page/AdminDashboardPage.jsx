@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Card, Col, Row, Statistic, Typography, notification, Spin, Table, Tag } from "antd";
+import { Card, Col, Row, Statistic, Typography, Spin, Table, Tag } from "antd";
 import { UserOutlined, ShoppingCartOutlined, DollarOutlined, AppstoreOutlined } from "@ant-design/icons";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 
 const { Title } = Typography;
 

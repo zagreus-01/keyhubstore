@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Card, Col, Divider, Input, Row, Select, Skeleton, Typography, notification } from "antd";
+import { Button, Card, Col, Divider, Input, Row, Select, Skeleton, Typography } from "antd";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 import ProductGrid, { ProductGridSkeleton } from "../components/common/ProductGrid";
 import { PageEmpty } from "../components/common/PageState";
 

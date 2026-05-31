@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { PlusOutlined, CameraOutlined } from "@ant-design/icons";
-import { Avatar, Button, Card, Divider, Form, Input, List, Modal, notification, Space, Tag, Typography, Upload } from "antd";
+import { Avatar, Button, Card, Form, Input, Modal, Space, Tag, Typography, Upload } from "antd";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
@@ -15,8 +16,6 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [form] = Form.useForm();
-  const [changePasswordForm] = Form.useForm();
-  const [addressForm] = Form.useForm();
   const { refreshProfile } = useAuth();
 
   const getAvatarUrl = (avatarPath) => {
@@ -87,7 +86,6 @@ export default function ProfilePage() {
       const response = await api.post("/user/address", values);
       setAddresses((prev) => [...prev, response.data.data]);
       setAddressModalVisible(false);
-      addressForm.resetFields();
       notification.success({ title: "Address added" });
     } catch (error) {
       notification.error({ title: getErrorMessage(error) });
@@ -110,7 +108,7 @@ export default function ProfilePage() {
         oldPassword: values.oldPassword,
         newPassword: values.newPassword,
       });
-      changePasswordForm.resetFields();
+      setShowChangePassword(false);
       notification.success({ title: "Password updated" });
     } catch (error) {
       notification.error({ title: getErrorMessage(error) });
@@ -134,11 +132,6 @@ export default function ProfilePage() {
         <Card
           loading={loading}
           title="Account details"
-          extra={
-            <Button type="link" onClick={() => setShowChangePassword((prev) => !prev)}>
-              {showChangePassword ? "Hide change password" : "Change password"}
-            </Button>
-          }
         >
           {profile && (
             <Form form={form} layout="vertical" onFinish={handleProfileSubmit} initialValues={{ fullName: profile.fullName, email: profile.email, phone: profile.phone }}>
@@ -167,14 +160,19 @@ export default function ProfilePage() {
               <Form.Item label="Loyalty points">
                 <Tag color="green">{profile.loyaltyPoints || 0} points</Tag>
               </Form.Item>
-              <Button type="primary" htmlType="submit">Update profile</Button>
+              <Space>
+                <Button type="primary" htmlType="submit">Update profile</Button>
+                <Button type="primary" onClick={() => setShowChangePassword((prev) => !prev)}>
+                  {showChangePassword ? "Hide change password" : "Change password"}
+                </Button>
+              </Space>
             </Form>
           )}
         </Card>
 
         {showChangePassword && (
           <Card title="Change password">
-            <Form form={changePasswordForm} layout="vertical" onFinish={changePassword}>
+            <Form layout="vertical" onFinish={changePassword}>
               <Form.Item name="oldPassword" label="Current password" rules={[{ required: true, message: "Enter your current password" }]}> 
                 <Input.Password />
               </Form.Item>
@@ -205,28 +203,38 @@ export default function ProfilePage() {
         )}
 
         <Card title="My addresses" extra={<Button icon={<PlusOutlined />} onClick={() => setAddressModalVisible(true)}>Add address</Button>}>
-          <List
-            dataSource={addresses}
-            locale={{ emptyText: "No addresses yet" }}
-            renderItem={(address) => (
-              <List.Item
-                actions={[
-                  <Button key="default" type={address.isDefault ? "primary" : "default"} onClick={() => setDefaultAddress(address._id)}>{address.isDefault ? "Default" : "Set default"}</Button>,
-                  <Button key="delete" danger onClick={() => removeAddress(address._id)}>Delete</Button>
-                ]}
-              >
-                <List.Item.Meta
-                  title={address.fullName}
-                  description={
-                    <>
-                      <Text>{address.phone}</Text><br />
-                      <Text>{`${address.detailAddress}, ${address.ward}, ${address.district}, ${address.province}`}</Text>
-                    </>
-                  }
-                />
-              </List.Item>
-            )}
-          />
+          {addresses.length ? (
+            <Space direction="vertical" style={{ width: "100%" }} size={0}>
+              {addresses.map((address, index) => (
+                <div
+                  key={address._id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    padding: "12px 0",
+                    borderBottom: index === addresses.length - 1 ? "none" : "1px solid #f0f0f0"
+                  }}
+                >
+                  <div>
+                    <Text strong>{address.fullName}</Text>
+                    <br />
+                    <Text>{address.phone}</Text>
+                    <br />
+                    <Text>{`${address.detailAddress}, ${address.ward}, ${address.district}, ${address.province}`}</Text>
+                  </div>
+                  <Space>
+                    <Button type={address.isDefault ? "primary" : "default"} onClick={() => setDefaultAddress(address._id)}>
+                      {address.isDefault ? "Default" : "Set default"}
+                    </Button>
+                    <Button danger onClick={() => removeAddress(address._id)}>Delete</Button>
+                  </Space>
+                </div>
+              ))}
+            </Space>
+          ) : (
+            <Text type="secondary">No addresses yet</Text>
+          )}
         </Card>
       </Space>
 
@@ -234,9 +242,10 @@ export default function ProfilePage() {
         title="Add shipping address"
         open={addressModalVisible}
         onCancel={() => setAddressModalVisible(false)}
+        destroyOnHidden
         footer={null}
       >
-        <Form form={addressForm} layout="vertical" onFinish={addAddress}>
+        <Form layout="vertical" onFinish={addAddress}>
           <Form.Item name="fullName" label="Full name" rules={[{ required: true, message: "Enter the recipient name" }]}> 
             <Input />
           </Form.Item>

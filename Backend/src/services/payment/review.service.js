@@ -8,17 +8,13 @@ require("../../models/order.model");
 const Product =
 require("../../models/product.model");
 
-const Coupon =
-require("../../models/coupon.model");
-
 const ProductVariant =
 require("../../models/productVariant.model");
 
 const User =
 require("../../models/user.model");
 
-const REVIEW_REWARD_POINTS = 20;
-const REVIEW_REWARD_DISCOUNT_PERCENT = 5;
+const REVIEW_REWARD_RATE = 0.01;
 
 // Helper function to validate ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -127,6 +123,11 @@ const createReview = async (
 
     }
 
+    const rewardedOrderReview = await Review.exists({
+        userId,
+        orderId
+    });
+
     // create review
     const review =
         await Review.create({
@@ -143,26 +144,18 @@ const createReview = async (
 
         });
 
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    const rewardCode =
-        `RV${String(userId).slice(-4).toUpperCase()}${String(review._id).slice(-6).toUpperCase()}`;
+    const orderValue = Math.max(order.finalAmount ?? order.totalAmount ?? 0, 0);
+    const rewardPoints = rewardedOrderReview
+        ? 0
+        : Math.round(orderValue * REVIEW_REWARD_RATE);
 
-    const rewardCoupon = await Coupon.create({
-        code: rewardCode,
-        discountType: "percent",
-        discountValue: REVIEW_REWARD_DISCOUNT_PERCENT,
-        applyTo: ["all"],
-        ownerUserId: userId,
-        source: "review_reward",
-        startAt: new Date(),
-        expiredAt: expiresAt
-    });
-
-    await User.findByIdAndUpdate(userId, {
-        $inc: {
-            loyaltyPoints: REVIEW_REWARD_POINTS
-        }
-    });
+    if (rewardPoints > 0) {
+        await User.findByIdAndUpdate(userId, {
+            $inc: {
+                loyaltyPoints: rewardPoints
+            }
+        });
+    }
 
     // update product rating
     await updateProductRating(
@@ -171,10 +164,13 @@ const createReview = async (
 
     return {
         review,
-        reward: {
-            points: REVIEW_REWARD_POINTS,
-            coupon: rewardCoupon
-        }
+        reward: rewardPoints > 0
+            ? {
+                points: rewardPoints,
+                discountValue: rewardPoints,
+                rate: REVIEW_REWARD_RATE
+            }
+            : null
     };
 
 };

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Descriptions, Divider, Empty, List, notification, Pagination, Tag, Typography } from "antd";
+import { Alert, Button, Card, Descriptions, Divider, Empty, Pagination, Space, Tag, Typography } from "antd";
 import { useNavigate } from "react-router-dom";
 import api, { getErrorMessage } from "../util/api";
+import { notification } from "../util/feedback";
 import useAuth from "../components/context/useAuth";
 
 const { Title, Text } = Typography;
@@ -135,10 +136,8 @@ export default function OrdersPage() {
         </Empty>
       ) : (
         <>
-        <List
-          dataSource={orders}
-          itemLayout="vertical"
-          renderItem={(order) => (
+        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          {orders.map((order) => (
             <Card key={order._id} className="order-card" hoverable>
               <div className="order-head">
                 <div>
@@ -155,19 +154,15 @@ export default function OrdersPage() {
                 <Descriptions.Item label="Address">{order.shippingAddress?.address || "-"}</Descriptions.Item>
               </Descriptions>
               <Divider />
-              <List
-                grid={{ gutter: 16, column: 1 }}
-                dataSource={order.items || []}
-                renderItem={(item) => (
-                  <List.Item>
-                    <Card size="small">
-                      <Text strong>{item.productName}</Text><br />
-                      <Text type="secondary">Variant: {item.variantName || item.sku || "-"}</Text><br />
-                      <Text>{item.quantity} x {Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.finalPrice)}</Text>
-                    </Card>
-                  </List.Item>
-                )}
-              />
+              <Space direction="vertical" style={{ width: "100%" }}>
+                {(order.items || []).map((item, index) => (
+                  <Card size="small" key={`${item.variantId || item.productName}-${index}`}>
+                    <Text strong>{item.productName}</Text><br />
+                    <Text type="secondary">Variant: {item.variantName || item.sku || "-"}</Text><br />
+                    <Text>{item.quantity} x {Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.finalPrice)}</Text>
+                  </Card>
+                ))}
+              </Space>
               <Button style={{ marginTop: 16 }} type="default" onClick={() => navigate("/products")}>Continue shopping</Button>
               <Button style={{ marginTop: 16, marginLeft: 8 }} type="primary" onClick={() => navigate(`/orders/${order._id}`)}>View details</Button>
               {canRequestCancel(order.orderStatus) && (
@@ -176,8 +171,8 @@ export default function OrdersPage() {
                 </Button>
               )}
             </Card>
-          )}
-        />
+          ))}
+        </Space>
         <Pagination
           current={pagination.page}
           pageSize={pagination.limit}
